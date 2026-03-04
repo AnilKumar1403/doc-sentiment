@@ -10,12 +10,28 @@ const viewTitle = document.getElementById('view-title');
 const viewSubtitle = document.getElementById('view-subtitle');
 
 let currentUser = null;
+const ACCESS_TOKEN_KEY = 'sentiment_access_token';
 
 const viewMeta = {
-  dashboard: { title: 'Dashboard', subtitle: 'Your document sentiment overview.' },
-  analyze: { title: 'Analyze', subtitle: 'Analyze direct text or uploaded files with OCR.' },
-  history: { title: 'History', subtitle: 'Review all your processed documents and sentiments.' },
+  dashboard: { title: 'Dashboard', subtitle: 'Your document emotion intelligence overview.' },
+  analyze: { title: 'Analyze', subtitle: 'Analyze text/files with custom emotion metrics.' },
+  history: { title: 'History', subtitle: 'Review all processed reports and suggestions.' },
   profile: { title: 'Profile', subtitle: 'Your account details and access profile.' },
+};
+
+const routeToView = {
+  '/dashboard': 'dashboard',
+  '/analyze': 'analyze',
+  '/history': 'history',
+  '/profile': 'profile',
+  '/login': null,
+};
+
+const viewToRoute = {
+  dashboard: '/dashboard',
+  analyze: '/analyze',
+  history: '/history',
+  profile: '/profile',
 };
 
 function escapeHtml(text) {
@@ -27,13 +43,23 @@ function escapeHtml(text) {
 function showMessage(target, msg, isError = false) {
   target.classList.remove('hidden');
   target.style.borderColor = isError ? '#d36d6d' : '#b9d7c4';
-  target.innerHTML = escapeHtml(msg);
+  target.innerHTML = msg;
 }
 
 async function apiFetch(url, options = {}) {
-  const res = await fetch(url, options);
+  const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+  const headers = new Headers(options.headers || {});
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const res = await fetch(url, { ...options, headers });
   if (!res.ok) {
     const payload = await res.json().catch(() => ({ detail: 'Request failed' }));
+    if (res.status === 401) {
+      localStorage.removeItem(ACCESS_TOKEN_KEY);
+      showAuth();
+    }
     throw new Error(payload.detail || 'Request failed');
   }
   return res.json();
@@ -56,7 +82,9 @@ function showApp(user) {
   document.getElementById('profile-name').textContent = user.display_name;
   document.getElementById('profile-email').textContent = user.email;
   document.getElementById('profile-joined').textContent = new Date(user.created_at).toLocaleString();
-  openView('dashboard');
+
+  const pathView = routeToView[window.location.pathname] || 'dashboard';
+  openView(pathView, { updateUrl: true });
 }
 
 function showAuth() {
@@ -64,9 +92,18 @@ function showAuth() {
   appShell.classList.add('hidden');
   authScreen.classList.remove('hidden');
   setAuthMode('login');
+  if (window.location.pathname !== '/login') {
+    window.history.replaceState({}, '', '/login');
+  }
 }
 
-function openView(viewName) {
+function openView(viewName, options = {}) {
+  const { updateUrl = true } = options;
+  if (!currentUser) {
+    showAuth();
+    return;
+  }
+
   document.querySelectorAll('.view').forEach((view) => view.classList.add('hidden'));
   document.querySelectorAll('.menu-btn[data-view]').forEach((btn) => btn.classList.remove('active'));
 
@@ -80,27 +117,74 @@ function openView(viewName) {
   viewTitle.textContent = viewMeta[viewName].title;
   viewSubtitle.textContent = viewMeta[viewName].subtitle;
 
+  if (updateUrl) {
+    const targetPath = viewToRoute[viewName] || '/dashboard';
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({ view: viewName }, '', targetPath);
+    }
+  }
+
   if (viewName === 'dashboard') loadDashboard();
   if (viewName === 'history') loadHistory();
+}
+
+function formatEmotionScores(scores = []) {
+  return scores
+    .slice(0, 6)
+    .map((item) => `${escapeHtml(item.emotion)} (${(item.score * 100).toFixed(1)}%)`)
+    .join(', ');
+}
+
+function renderAnalyzeResult(data) {
+  const scores = formatEmotionScores(data.emotion_scores || []);
+  const suggestions = (data.suggestions || [])
+    .map((s) => `<li>${escapeHtml(s)}</li>`)
+    .join('');
+
+  return `
+    <div><strong>Primary Emotion:</strong> ${escapeHtml(data.label)} (${(data.confidence * 100).toFixed(2)}%)</div>
+    <div><strong>Selected Metrics:</strong> ${escapeHtml((data.selected_metrics || []).join(', ') || 'all')}</div>
+    <div><strong>Top Scores:</strong> ${scores || 'n/a'}</div>
+    <div><strong>Summary:</strong> ${escapeHtml(data.summary || '')}</div>
+    <div><strong>Suggestions:</strong><ul>${suggestions || '<li>No suggestions</li>'}</ul></div>
+  `;
 }
 
 async function loadDashboard() {
   try {
     const data = await apiFetch('/api/v1/dashboard/summary');
     document.getElementById('stat-total').textContent = data.total_documents;
-    document.getElementById('stat-positive').textContent = data.positive_documents;
-    document.getElementById('stat-negative').textContent = data.negative_documents;
+    document.getElementById('stat-alert').textContent = data.high_alert_documents;
     document.getElementById('stat-last').textContent = data.last_analysis_at
       ? new Date(data.last_analysis_at).toLocaleString()
       : '-';
+    document.getElementById('stat-top-emotions').textContent = formatEmotionScores(data.top_emotions || []) || '-';
+    await loadModelDetails();
   } catch (err) {
-    showMessage(document.getElementById('analyze-result'), err.message, true);
+    showMessage(document.getElementById('analyze-result'), escapeHtml(err.message), true);
+  }
+}
+
+async function loadModelDetails() {
+  const metaEl = document.getElementById('model-meta');
+  const metricsEl = document.getElementById('model-metrics');
+  try {
+    const details = await apiFetch('/api/v1/model/details');
+    metaEl.textContent = `${details.model_name} (${details.model_version}) | labels: ${details.labels.length}`;
+    const micro = details.train_metrics?.micro_f1;
+    const macro = details.train_metrics?.macro_f1;
+    const samples = details.train_metrics?.samples;
+    metricsEl.textContent = `training metrics -> micro-F1: ${micro ?? 'n/a'}, macro-F1: ${macro ?? 'n/a'}, samples: ${samples ?? 'n/a'}`;
+  } catch (err) {
+    metaEl.textContent = 'Model details unavailable';
+    metricsEl.textContent = String(err.message || '');
   }
 }
 
 async function loadHistory() {
   const historyList = document.getElementById('history-list');
   historyList.innerHTML = '<p class="muted">Loading...</p>';
+
   try {
     const items = await apiFetch('/api/v1/documents/history');
     if (!items.length) {
@@ -111,12 +195,18 @@ async function loadHistory() {
     historyList.innerHTML = items
       .map((item) => {
         const confidence = item.confidence != null ? `${(item.confidence * 100).toFixed(2)}%` : 'n/a';
+        const topScores = formatEmotionScores(item.emotion_scores || []);
+        const suggestions = (item.suggestions || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+
         return `
           <article class="history-item">
             <h3>${escapeHtml(item.title)}</h3>
             <p class="muted tiny">${new Date(item.created_at).toLocaleString()} | Source: ${escapeHtml(item.source_type)}${item.file_name ? ` | File: ${escapeHtml(item.file_name)}` : ''}</p>
-            <p>${escapeHtml((item.content || '').slice(0, 240))}${(item.content || '').length > 240 ? '...' : ''}</p>
-            <p><span class="tag ${escapeHtml(item.label || '')}">${escapeHtml(item.label || 'n/a')}</span> Confidence: ${confidence} | Chars: ${item.extracted_char_count}</p>
+            <p><span class="tag">Primary: ${escapeHtml(item.label || 'n/a')}</span> Confidence: ${confidence}</p>
+            <p><strong>Metrics:</strong> ${escapeHtml((item.selected_metrics || []).join(', ') || 'all')}</p>
+            <p><strong>Top Scores:</strong> ${topScores || 'n/a'}</p>
+            <p><strong>Summary:</strong> ${escapeHtml(item.summary || '')}</p>
+            <ul>${suggestions || '<li>No suggestions</li>'}</ul>
           </article>
         `;
       })
@@ -137,9 +227,10 @@ loginForm.addEventListener('submit', async (event) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
+    localStorage.setItem(ACCESS_TOKEN_KEY, data.access_token);
     showApp(data.user);
   } catch (err) {
-    showMessage(authMessage, err.message, true);
+    showMessage(authMessage, escapeHtml(err.message), true);
   }
 });
 
@@ -155,9 +246,10 @@ registerForm.addEventListener('submit', async (event) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ display_name, email, password }),
     });
+    localStorage.setItem(ACCESS_TOKEN_KEY, data.access_token);
     showApp(data.user);
   } catch (err) {
-    showMessage(authMessage, err.message, true);
+    showMessage(authMessage, escapeHtml(err.message), true);
   }
 });
 
@@ -166,21 +258,19 @@ document.getElementById('text-form').addEventListener('submit', async (event) =>
   const target = document.getElementById('analyze-result');
   const title = document.getElementById('text-title').value.trim();
   const content = document.getElementById('text-content').value.trim();
+  const emotion_metrics = document.getElementById('text-metrics').value.trim();
 
   try {
     const data = await apiFetch('/api/v1/documents/analyze-text', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content }),
+      body: JSON.stringify({ title, content, emotion_metrics }),
     });
-    showMessage(
-      target,
-      `Text analysis completed. Sentiment: ${data.label}, Confidence: ${(data.confidence * 100).toFixed(2)}%, Chars: ${data.extracted_char_count}`
-    );
+    showMessage(target, renderAnalyzeResult(data));
     event.target.reset();
     loadDashboard();
   } catch (err) {
-    showMessage(target, err.message, true);
+    showMessage(target, escapeHtml(err.message), true);
   }
 });
 
@@ -188,6 +278,7 @@ document.getElementById('file-form').addEventListener('submit', async (event) =>
   event.preventDefault();
   const target = document.getElementById('analyze-result');
   const title = document.getElementById('file-title').value.trim();
+  const emotion_metrics = document.getElementById('file-metrics').value.trim();
   const fileInput = document.getElementById('file-input');
   const file = fileInput.files[0];
 
@@ -198,6 +289,7 @@ document.getElementById('file-form').addEventListener('submit', async (event) =>
 
   const formData = new FormData();
   formData.append('title', title);
+  formData.append('emotion_metrics', emotion_metrics);
   formData.append('file', file);
 
   try {
@@ -205,14 +297,11 @@ document.getElementById('file-form').addEventListener('submit', async (event) =>
       method: 'POST',
       body: formData,
     });
-    showMessage(
-      target,
-      `File analysis completed. Sentiment: ${data.label}, Confidence: ${(data.confidence * 100).toFixed(2)}%, Source: ${data.source_type}, Chars: ${data.extracted_char_count}`
-    );
+    showMessage(target, renderAnalyzeResult(data));
     event.target.reset();
     loadDashboard();
   } catch (err) {
-    showMessage(target, err.message, true);
+    showMessage(target, escapeHtml(err.message), true);
   }
 });
 
@@ -228,16 +317,34 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
   } catch (_err) {
     // Ignore logout API errors and reset UI anyway.
   }
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
   showAuth();
 });
 
 tabLogin.addEventListener('click', () => setAuthMode('login'));
 tabRegister.addEventListener('click', () => setAuthMode('register'));
 
+window.addEventListener('popstate', () => {
+  const pathView = routeToView[window.location.pathname];
+  if (!currentUser) {
+    showAuth();
+    return;
+  }
+  if (pathView) {
+    openView(pathView, { updateUrl: false });
+  } else {
+    openView('dashboard');
+  }
+});
+
 async function bootstrap() {
+  const requestedPath = window.location.pathname;
   try {
     const me = await apiFetch('/api/v1/auth/me');
     showApp(me);
+    if (requestedPath === '/login') {
+      openView('dashboard');
+    }
   } catch (_err) {
     showAuth();
   }

@@ -24,6 +24,10 @@ CREATE TABLE IF NOT EXISTS sentiment_results (
     document_id INT NOT NULL UNIQUE REFERENCES documents(id) ON DELETE CASCADE,
     label VARCHAR(32) NOT NULL,
     confidence DOUBLE PRECISION NOT NULL,
+    emotion_scores_json TEXT NOT NULL DEFAULT '{}',
+    selected_metrics_json TEXT NOT NULL DEFAULT '[]',
+    summary_text TEXT,
+    suggestions_json TEXT NOT NULL DEFAULT '[]',
     model_name VARCHAR(128) NOT NULL,
     model_version VARCHAR(32) NOT NULL DEFAULT 'v1',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP

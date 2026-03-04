@@ -13,7 +13,7 @@
     <main id="auth-screen" class="auth-shell">
       <section class="auth-card">
         <h1>Sentiment Intelligence Platform</h1>
-        <p class="muted">Login or create an account to analyze documents using OCR + AI.</p>
+        <p class="muted">Login first. Dashboard and analysis are locked until authentication succeeds.</p>
 
         <div class="tabs">
           <button id="tab-login" class="tab active" type="button">Login</button>
@@ -63,7 +63,7 @@
       <section class="content">
         <header class="content-header">
           <h1 id="view-title">Dashboard</h1>
-          <p id="view-subtitle" class="muted">Your document sentiment overview.</p>
+          <p id="view-subtitle" class="muted">Your document emotion intelligence overview.</p>
         </header>
 
         <section id="view-dashboard" class="view">
@@ -73,17 +73,22 @@
               <p id="stat-total" class="stat-value">0</p>
             </article>
             <article class="stat-card">
-              <h3>Positive</h3>
-              <p id="stat-positive" class="stat-value">0</p>
-            </article>
-            <article class="stat-card">
-              <h3>Negative</h3>
-              <p id="stat-negative" class="stat-value">0</p>
+              <h3>High Alert Docs</h3>
+              <p id="stat-alert" class="stat-value">0</p>
             </article>
             <article class="stat-card">
               <h3>Last Analysis</h3>
               <p id="stat-last" class="stat-value small">-</p>
             </article>
+            <article class="stat-card">
+              <h3>Top Emotions</h3>
+              <p id="stat-top-emotions" class="stat-value small">-</p>
+            </article>
+          </div>
+          <div class="panel model-panel">
+            <h3>Model Details</h3>
+            <p class="muted tiny" id="model-meta">-</p>
+            <p class="muted tiny" id="model-metrics">-</p>
           </div>
         </section>
 
@@ -97,6 +102,12 @@
               <label for="text-content">Content</label>
               <textarea id="text-content" rows="8" required></textarea>
 
+              <label for="text-metrics">Emotion Metrics (comma-separated)</label>
+              <input
+                id="text-metrics"
+                placeholder="drama, love, anger, calm"
+              />
+
               <button type="submit">Analyze Text</button>
             </form>
           </div>
@@ -109,6 +120,12 @@
 
               <label for="file-input">Document</label>
               <input id="file-input" type="file" required />
+
+              <label for="file-metrics">Emotion Metrics (comma-separated)</label>
+              <input
+                id="file-metrics"
+                placeholder="stress, worried, fear, polite"
+              />
 
               <p class="muted tiny">Supported: .txt, .pdf, .docx, .png, .jpg, .jpeg, .tiff (max 10MB)</p>
               <button type="submit">Analyze File + OCR</button>

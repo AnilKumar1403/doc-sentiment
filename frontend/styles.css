@@ -1,15 +1,16 @@
 :root {
-  --bg: #f4efe4;
-  --surface: #fffef9;
-  --surface-2: #fff9ef;
-  --text: #1f1c17;
-  --muted: #6e6256;
-  --line: #e4dacd;
-  --brand: #c4572a;
-  --brand-dark: #9f401c;
-  --good: #18794e;
-  --bad: #a72323;
-  --shadow: 0 12px 26px rgba(0, 0, 0, 0.08);
+  --bg: #f6f8fc;
+  --bg-2: #f9fbff;
+  --surface: #ffffff;
+  --surface-soft: #f7f9fd;
+  --text: #1f2a37;
+  --muted: #6b7a90;
+  --line: #e4eaf3;
+  --brand: #8ab4f8;
+  --brand-strong: #5e8de8;
+  --danger: #ff6b7a;
+  --success: #58b98a;
+  --shadow: 0 8px 28px rgba(31, 58, 95, 0.08);
 }
 
 * {
@@ -20,34 +21,37 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--text);
-  font-family: "Avenir Next", "Trebuchet MS", sans-serif;
-  background: linear-gradient(135deg, #f6efe2 0%, #fbf8f0 40%, #f1f7ef 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(900px 400px at 10% -10%, #eaf2ff 0%, transparent 70%),
+    radial-gradient(800px 380px at 110% 10%, #eff8ff 0%, transparent 70%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
 }
 
 .background-orb {
   position: fixed;
-  width: 340px;
-  height: 340px;
+  width: 280px;
+  height: 280px;
   border-radius: 50%;
-  filter: blur(70px);
+  filter: blur(90px);
   z-index: -1;
 }
 
 .orb-a {
+  left: -80px;
   top: -80px;
-  left: -100px;
-  background: rgba(196, 87, 42, 0.24);
+  background: rgba(138, 180, 248, 0.28);
 }
 
 .orb-b {
-  right: -120px;
-  bottom: -120px;
-  background: rgba(24, 121, 78, 0.2);
+  right: -100px;
+  bottom: -100px;
+  background: rgba(173, 222, 199, 0.24);
 }
 
 .auth-shell,
 .app-shell {
-  width: min(1200px, 96vw);
+  width: min(1240px, 96vw);
   margin: 2rem auto;
 }
 
@@ -55,22 +59,38 @@ body {
 .sidebar,
 .content,
 .panel,
-.stat-card {
-  background: var(--surface);
+.stat-card,
+.history-item {
   border: 1px solid var(--line);
-  border-radius: 16px;
+  background: var(--surface);
+  border-radius: 18px;
   box-shadow: var(--shadow);
 }
 
 .auth-card {
-  max-width: 520px;
-  margin: 4rem auto;
+  max-width: 540px;
+  margin: 3.5rem auto;
   padding: 1.4rem;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.tiny {
+  font-size: 0.82rem;
 }
 
 .tabs {
   display: flex;
-  gap: 0.6rem;
+  gap: 0.5rem;
   margin: 1rem 0;
 }
 
@@ -78,17 +98,15 @@ body {
 .menu-btn,
 button {
   border: none;
-  border-radius: 10px;
-  background: var(--brand);
-  color: #fff;
-  padding: 0.65rem 0.9rem;
-  font-weight: 700;
+  border-radius: 12px;
+  padding: 0.62rem 0.9rem;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .tab {
-  background: #d8cdc0;
-  color: #332920;
+  background: #edf2fb;
+  color: #57729d;
 }
 
 .tab.active {
@@ -102,23 +120,36 @@ button {
 }
 
 label {
-  font-weight: 700;
+  margin-top: 0.35rem;
+  font-weight: 600;
 }
 
 input,
 textarea {
   width: 100%;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 0.68rem;
-  background: #fff;
-  color: var(--text);
+  border-radius: 12px;
+  padding: 0.7rem;
   font-size: 0.95rem;
+  color: var(--text);
+  background: #fff;
+}
+
+input:focus,
+textarea:focus {
+  outline: 2px solid rgba(138, 180, 248, 0.35);
+  border-color: #b9cff7;
+}
+
+button,
+.menu-btn {
+  background: var(--brand);
+  color: #fff;
 }
 
 button:hover,
 .menu-btn:hover {
-  background: var(--brand-dark);
+  background: var(--brand-strong);
 }
 
 .hidden {
@@ -126,24 +157,16 @@ button:hover,
 }
 
 .message {
-  margin-top: 1rem;
-  border-radius: 12px;
-  padding: 0.75rem;
-  border: 1px solid var(--line);
-  background: var(--surface-2);
-}
-
-.muted {
-  color: var(--muted);
-}
-
-.tiny {
-  font-size: 0.82rem;
+  margin-top: 0.95rem;
+  border-radius: 14px;
+  padding: 0.9rem;
+  border: 1px solid #d9e5fb;
+  background: #f7fbff;
 }
 
 .app-shell {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 244px 1fr;
   gap: 1rem;
 }
 
@@ -153,56 +176,71 @@ button:hover,
 }
 
 .sidebar-user {
-  margin-top: -0.4rem;
+  margin: 0.35rem 0 0.9rem;
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.9rem;
 }
 
 .sidebar nav {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.52rem;
 }
 
 .menu-btn {
   text-align: left;
+  background: #edf2fb;
+  color: #4e6a95;
 }
 
 .menu-btn.active {
-  outline: 2px solid #f6bf9f;
+  background: var(--brand);
+  color: #fff;
 }
 
 .menu-btn.danger {
-  background: #8f2323;
+  background: #ffeef0;
+  color: #b83a53;
 }
 
 .content {
   padding: 1rem;
 }
 
+.content-header {
+  margin-bottom: 0.8rem;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.8rem;
+  gap: 0.75rem;
 }
 
 .stat-card {
   padding: 0.9rem;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
 }
 
 .stat-value {
-  font-size: 2rem;
-  margin: 0.3rem 0 0;
-  font-weight: 800;
+  margin-top: 0.35rem;
+  font-size: 1.7rem;
+  font-weight: 700;
 }
 
 .stat-value.small {
-  font-size: 1rem;
+  font-size: 0.96rem;
+  line-height: 1.35;
+}
+
+.model-panel {
+  margin-top: 0.75rem;
+  background: var(--surface-soft);
 }
 
 #view-analyze {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.8rem;
+  gap: 0.75rem;
 }
 
 .panel {
@@ -211,39 +249,34 @@ button:hover,
 
 .row-head {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
 }
 
 .history-list {
   display: grid;
-  gap: 0.65rem;
+  gap: 0.7rem;
   margin-top: 0.75rem;
 }
 
 .history-item {
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 0.75rem;
-  background: #fff;
+  padding: 0.8rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
 }
 
 .tag {
   display: inline-block;
-  padding: 0.2rem 0.5rem;
+  background: #edf2fb;
+  color: #4d6791;
   border-radius: 999px;
+  padding: 0.22rem 0.55rem;
   font-size: 0.8rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
-.tag.positive {
-  background: #e2f7eb;
-  color: var(--good);
-}
-
-.tag.negative {
-  background: #fde8e8;
-  color: var(--bad);
+ul {
+  margin: 0.35rem 0 0.1rem;
+  padding-left: 1.2rem;
 }
 
 @media (max-width: 980px) {
