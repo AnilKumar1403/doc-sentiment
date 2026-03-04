@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -13,12 +13,15 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     display_name: Mapped[str] = mapped_column(String(120), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    credits_remaining: Mapped[int] = mapped_column(Integer, nullable=False, default=25)
+    is_unlimited: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
     documents: Mapped[list["Document"]] = relationship("Document", back_populates="owner")
+    history_entries: Mapped[list["AnalysisHistory"]] = relationship("AnalysisHistory", back_populates="owner")
 
 
 class Document(Base):
@@ -58,3 +61,22 @@ class SentimentResult(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     document: Mapped[Document] = relationship("Document", back_populates="result")
+
+
+class AnalysisHistory(Base):
+    __tablename__ = "analysis_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    module_name: Mapped[str] = mapped_column(String(32), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    source_type: Mapped[str] = mapped_column(String(32), nullable=False, default="text")
+    analysis_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    label: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    summary_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    suggestions_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    details_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    owner: Mapped[User | None] = relationship("User", back_populates="history_entries")

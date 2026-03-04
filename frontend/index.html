@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sentiment Intelligence Platform</title>
+    <title>Anil's aquaanalysis</title>
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
@@ -12,48 +12,33 @@
 
     <main id="auth-screen" class="auth-shell">
       <section class="auth-card">
-        <h1>Sentiment Intelligence Platform</h1>
-        <p class="muted">Login first. Dashboard and analysis are locked until authentication succeeds.</p>
-
-        <div class="tabs">
-          <button id="tab-login" class="tab active" type="button">Login</button>
-          <button id="tab-register" class="tab" type="button">Create Account</button>
-        </div>
+        <h1>Anil's aquaanalysis</h1>
+        <p class="muted">
+          Intelligent document platform for sentiment, relevance, and learning analysis with OCR-assisted extraction.
+        </p>
 
         <form id="login-form" class="form-block">
           <label for="login-email">Email</label>
           <input id="login-email" type="email" required value="anilkumargolla444@gmail.com" />
-
           <label for="login-password">Password</label>
           <input id="login-password" type="password" required value="Anil2020@b" />
-
           <button type="submit">Login</button>
         </form>
 
-        <form id="register-form" class="form-block hidden">
-          <label for="register-name">Display Name</label>
-          <input id="register-name" type="text" required minlength="2" maxlength="120" />
-
-          <label for="register-email">Email</label>
-          <input id="register-email" type="email" required />
-
-          <label for="register-password">Password</label>
-          <input id="register-password" type="password" required minlength="8" />
-
-          <button type="submit">Create Account</button>
-        </form>
-
         <div id="auth-message" class="message hidden"></div>
+        <p class="auth-footer">Copyright © @Anilkumargolla_TE</p>
       </section>
     </main>
 
     <main id="app-shell" class="app-shell hidden">
       <aside class="sidebar">
-        <h2>Sentiment AI</h2>
+        <h2>Anil's aquaanalysis</h2>
         <p id="sidebar-user" class="sidebar-user"></p>
         <nav>
           <button class="menu-btn active" data-view="dashboard" type="button">Dashboard</button>
-          <button class="menu-btn" data-view="analyze" type="button">Analyze</button>
+          <button class="menu-btn" data-view="sentiment" type="button">Sentiment</button>
+          <button class="menu-btn" data-view="relevance" type="button">Relevance</button>
+          <button class="menu-btn" data-view="learning" type="button">Learning</button>
           <button class="menu-btn" data-view="history" type="button">History</button>
           <button class="menu-btn" data-view="profile" type="button">Profile</button>
           <button id="logout-btn" class="menu-btn danger" type="button">Logout</button>
@@ -63,27 +48,21 @@
       <section class="content">
         <header class="content-header">
           <h1 id="view-title">Dashboard</h1>
-          <p id="view-subtitle" class="muted">Your document emotion intelligence overview.</p>
+          <p id="view-subtitle" class="muted">AI-assisted insights across documents and learning goals.</p>
         </header>
 
         <section id="view-dashboard" class="view">
           <div class="stats-grid">
-            <article class="stat-card">
-              <h3>Total Documents</h3>
-              <p id="stat-total" class="stat-value">0</p>
-            </article>
-            <article class="stat-card">
-              <h3>High Alert Docs</h3>
-              <p id="stat-alert" class="stat-value">0</p>
-            </article>
-            <article class="stat-card">
-              <h3>Last Analysis</h3>
-              <p id="stat-last" class="stat-value small">-</p>
-            </article>
-            <article class="stat-card">
-              <h3>Top Emotions</h3>
-              <p id="stat-top-emotions" class="stat-value small">-</p>
-            </article>
+            <article class="stat-card"><h3>Total Documents</h3><p id="stat-total" class="stat-value">0</p></article>
+            <article class="stat-card"><h3>Total Analyses</h3><p id="stat-total-analyses" class="stat-value">0</p></article>
+            <article class="stat-card"><h3>High Alert Docs</h3><p id="stat-alert" class="stat-value">0</p></article>
+            <article class="stat-card"><h3>Last Analysis</h3><p id="stat-last" class="stat-value small">-</p></article>
+            <article class="stat-card"><h3>Top Emotions</h3><p id="stat-top-emotions" class="stat-value small">-</p></article>
+          </div>
+          <div class="panel model-panel">
+            <h3>Section Analytics</h3>
+            <p class="muted tiny">Per-module analytics across sentiment, relevance, and learning.</p>
+            <div id="dashboard-module-analytics" class="history-list"></div>
           </div>
           <div class="panel model-panel">
             <h3>Model Details</h3>
@@ -92,47 +71,160 @@
           </div>
         </section>
 
-        <section id="view-analyze" class="view hidden">
+        <section id="view-sentiment" class="view hidden">
           <div class="panel">
-            <h2>Analyze Direct Text</h2>
-            <form id="text-form">
-              <label for="text-title">Title</label>
-              <input id="text-title" maxlength="255" required />
-
-              <label for="text-content">Content</label>
-              <textarea id="text-content" rows="8" required></textarea>
-
-              <label for="text-metrics">Emotion Metrics (comma-separated)</label>
-              <input
-                id="text-metrics"
-                placeholder="drama, love, anger, calm"
-              />
-
+            <h2>Sentiment Analysis (Text)</h2>
+            <form id="sentiment-text-form">
+              <label for="sentiment-text-title">Title</label>
+              <input id="sentiment-text-title" maxlength="255" required />
+              <label for="sentiment-text-content">Content</label>
+              <textarea id="sentiment-text-content" rows="7" required></textarea>
+              <label for="sentiment-metrics">Emotion Metrics (optional)</label>
+              <input id="sentiment-metrics" placeholder="anger, calm, love" />
               <button type="submit">Analyze Text</button>
             </form>
           </div>
-
           <div class="panel">
-            <h2>Analyze Uploaded Document</h2>
-            <form id="file-form">
-              <label for="file-title">Title</label>
-              <input id="file-title" maxlength="255" required />
-
-              <label for="file-input">Document</label>
-              <input id="file-input" type="file" required />
-
-              <label for="file-metrics">Emotion Metrics (comma-separated)</label>
-              <input
-                id="file-metrics"
-                placeholder="stress, worried, fear, polite"
-              />
-
-              <p class="muted tiny">Supported: .txt, .pdf, .docx, .png, .jpg, .jpeg, .tiff (max 10MB)</p>
-              <button type="submit">Analyze File + OCR</button>
+            <h2>Sentiment Analysis (File + OCR)</h2>
+            <form id="sentiment-file-form">
+              <label for="sentiment-file-title">Title</label>
+              <input id="sentiment-file-title" maxlength="255" required />
+              <label for="sentiment-file-input">Document</label>
+              <input id="sentiment-file-input" type="file" required />
+              <label for="sentiment-file-metrics">Emotion Metrics (optional)</label>
+              <input id="sentiment-file-metrics" placeholder="stress, worried, polite" />
+              <button type="submit">Analyze File</button>
             </form>
           </div>
+          <div id="sentiment-result" class="message hidden"></div>
+        </section>
 
-          <div id="analyze-result" class="message hidden"></div>
+        <section id="view-relevance" class="view hidden">
+          <div class="panel">
+            <h2>Relevance Analysis</h2>
+            <form id="relevance-form">
+              <label for="rel-title">Title</label>
+              <input id="rel-title" required maxlength="255" />
+
+              <label for="rel-type">Analysis Type</label>
+              <select id="rel-type">
+                <option value="general">General</option>
+                <option value="resume_jd">Resume vs JD</option>
+                <option value="love_letter">Love Letter</option>
+                <option value="email">Email</option>
+                <option value="proposal">Proposal</option>
+                <option value="contract">Contract</option>
+              </select>
+
+              <label for="rel-role">Role (optional)</label>
+              <input id="rel-role" placeholder="Data Analyst / Software Engineer" />
+
+              <label for="rel-company">Company (optional)</label>
+              <input id="rel-company" placeholder="Company name" />
+
+              <label for="rel-doc">Your Document Text (optional if file attached)</label>
+              <textarea id="rel-doc" rows="6"></textarea>
+              <label for="rel-doc-file">Attach Document (optional)</label>
+              <input id="rel-doc-file" type="file" />
+
+              <label for="rel-ref">Reference/JD Text (optional if file attached)</label>
+              <textarea id="rel-ref" rows="6"></textarea>
+              <label for="rel-ref-file">Attach Reference/JD (optional)</label>
+              <input id="rel-ref-file" type="file" />
+
+              <label for="rel-notes">Context Notes (optional)</label>
+              <textarea id="rel-notes" rows="3"></textarea>
+
+              <button type="submit">Analyze Relevance</button>
+            </form>
+          </div>
+          <div class="panel">
+            <h2>CV to JD Revised Resume Generator</h2>
+            <p class="muted tiny">
+              Upload or paste your CV and JD to generate a recruiter-ready revised resume for faster, customized applications.
+            </p>
+            <form id="resume-generate-form">
+              <label for="resume-title">Request Title</label>
+              <input id="resume-title" required maxlength="255" placeholder="Resume rewrite for Product Analyst role" />
+
+              <label for="resume-role">Role (optional)</label>
+              <input id="resume-role" placeholder="Data Analyst / Backend Engineer" />
+
+              <label for="resume-company">Company (optional)</label>
+              <input id="resume-company" placeholder="Target company" />
+
+              <label for="resume-candidate-name">Candidate Name (optional)</label>
+              <input id="resume-candidate-name" placeholder="Full name" />
+
+              <label for="resume-cv-text">CV Text (optional if file attached)</label>
+              <textarea id="resume-cv-text" rows="6"></textarea>
+              <label for="resume-cv-file">Attach CV (optional)</label>
+              <input id="resume-cv-file" type="file" />
+
+              <label for="resume-jd-text">JD Text (optional if file attached)</label>
+              <textarea id="resume-jd-text" rows="6"></textarea>
+              <label for="resume-jd-file">Attach JD (optional)</label>
+              <input id="resume-jd-file" type="file" />
+
+              <label for="resume-context-notes">Context Notes (optional)</label>
+              <textarea id="resume-context-notes" rows="3" placeholder="Targeted team, preferred focus areas, constraints..."></textarea>
+
+              <button type="submit">Generate Revised Resume</button>
+            </form>
+          </div>
+          <div id="relevance-result" class="message hidden"></div>
+          <div id="resume-generate-result" class="message hidden"></div>
+        </section>
+
+        <section id="view-learning" class="view hidden">
+          <div class="panel">
+            <h2>Student Learning Coach</h2>
+            <form id="learning-form">
+              <label for="learn-subject">Subject</label>
+              <select id="learn-subject">
+                <option value="mathematics">Mathematics</option>
+                <option value="indian social">Indian Social</option>
+              </select>
+
+              <label for="learn-chapter">Chapter/Lesson Text (optional if file attached)</label>
+              <textarea id="learn-chapter" rows="6"></textarea>
+              <label for="learn-chapter-file">Attach Chapter File (optional)</label>
+              <input id="learn-chapter-file" type="file" />
+
+              <label for="learn-notes">Student Notes/Answers Text (optional)</label>
+              <textarea id="learn-notes" rows="5"></textarea>
+              <label for="learn-notes-file">Attach Student Answers File (optional)</label>
+              <input id="learn-notes-file" type="file" />
+
+              <button type="submit">Generate Story + Weakness Report</button>
+            </form>
+          </div>
+          <div class="panel">
+            <h2>Student Q&A (Math + Social)</h2>
+            <form id="learning-qa-form">
+              <label for="qa-subject">Subject</label>
+              <select id="qa-subject">
+                <option value="mathematics">Mathematics</option>
+                <option value="indian social">Indian Social</option>
+              </select>
+
+              <label for="qa-question">Question / Assignment Problem</label>
+              <textarea id="qa-question" rows="5" required placeholder="Paste the exact question here..."></textarea>
+
+              <label for="qa-attempt">Student Attempt (optional)</label>
+              <textarea id="qa-attempt" rows="4" placeholder="What did you already try?"></textarea>
+
+              <label for="qa-context">Assignment Context (optional)</label>
+              <textarea id="qa-context" rows="3" placeholder="Homework chapter, teacher instructions, exam pattern..."></textarea>
+
+              <label for="qa-grade">Grade Level (optional)</label>
+              <input id="qa-grade" placeholder="e.g., Class 8 / Class 10 / Competitive prep" />
+
+              <button type="submit">Generate Detailed Answer + Logic</button>
+            </form>
+          </div>
+          <div id="learning-result" class="message hidden"></div>
+          <div id="learning-qa-result" class="message hidden"></div>
         </section>
 
         <section id="view-history" class="view hidden">
@@ -150,6 +242,8 @@
             <h2>Profile</h2>
             <p><strong>Name:</strong> <span id="profile-name">-</span></p>
             <p><strong>Email:</strong> <span id="profile-email">-</span></p>
+            <p><strong>Plan:</strong> <span id="profile-plan">-</span></p>
+            <p><strong>Credits Remaining:</strong> <span id="profile-credits">-</span></p>
             <p><strong>Joined:</strong> <span id="profile-joined">-</span></p>
           </div>
         </section>

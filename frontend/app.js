@@ -2,9 +2,6 @@ const authScreen = document.getElementById('auth-screen');
 const appShell = document.getElementById('app-shell');
 const authMessage = document.getElementById('auth-message');
 const loginForm = document.getElementById('login-form');
-const registerForm = document.getElementById('register-form');
-const tabLogin = document.getElementById('tab-login');
-const tabRegister = document.getElementById('tab-register');
 const sidebarUser = document.getElementById('sidebar-user');
 const viewTitle = document.getElementById('view-title');
 const viewSubtitle = document.getElementById('view-subtitle');
@@ -13,15 +10,19 @@ let currentUser = null;
 const ACCESS_TOKEN_KEY = 'sentiment_access_token';
 
 const viewMeta = {
-  dashboard: { title: 'Dashboard', subtitle: 'Your document emotion intelligence overview.' },
-  analyze: { title: 'Analyze', subtitle: 'Analyze text/files with custom emotion metrics.' },
-  history: { title: 'History', subtitle: 'Review all processed reports and suggestions.' },
-  profile: { title: 'Profile', subtitle: 'Your account details and access profile.' },
+  dashboard: { title: 'Dashboard', subtitle: 'Analytics-only view for your account activity and model insights.' },
+  sentiment: { title: 'Sentiment Module', subtitle: 'Dedicated sentiment flow with text/file analysis.' },
+  relevance: { title: 'Relevance Studio', subtitle: 'Compare CV/document vs target context and generate revised resumes for JD alignment.' },
+  learning: { title: 'Learning Coach', subtitle: 'Math and Indian Social storytelling, weak-topic analysis, and student Q&A solver.' },
+  history: { title: 'History', subtitle: 'History-only view of completed analyses.' },
+  profile: { title: 'Profile', subtitle: 'Profile-only view of login and account details.' },
 };
 
 const routeToView = {
   '/dashboard': 'dashboard',
-  '/analyze': 'analyze',
+  '/sentiment': 'sentiment',
+  '/relevance': 'relevance',
+  '/learning': 'learning',
   '/history': 'history',
   '/profile': 'profile',
   '/login': null,
@@ -29,7 +30,9 @@ const routeToView = {
 
 const viewToRoute = {
   dashboard: '/dashboard',
-  analyze: '/analyze',
+  sentiment: '/sentiment',
+  relevance: '/relevance',
+  learning: '/learning',
   history: '/history',
   profile: '/profile',
 };
@@ -40,20 +43,70 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-function showMessage(target, msg, isError = false) {
+function showMessage(target, html, isError = false) {
   target.classList.remove('hidden');
-  target.style.borderColor = isError ? '#d36d6d' : '#b9d7c4';
-  target.innerHTML = msg;
+  target.style.borderColor = isError ? '#e2939e' : '#b7dfd0';
+  target.innerHTML = html;
+}
+
+function userPlanLabel(user) {
+  return user?.is_unlimited ? 'Unlimited Access' : 'Standard Access';
+}
+
+function creditsLabel(user) {
+  if (!user) return '-';
+  if (user.is_unlimited) return 'Unlimited';
+  return String(user.credits_remaining ?? 0);
 }
 
 async function apiFetch(url, options = {}) {
   const token = localStorage.getItem(ACCESS_TOKEN_KEY);
   const headers = new Headers(options.headers || {});
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+
+  const tryFetch = async (targetUrl) => {
+    try {
+      return await fetch(targetUrl, { ...options, headers });
+    } catch (_err) {
+      return null;
+    }
+  };
+
+  let res = await tryFetch(url);
+  if ((!res || res.status === 404) && typeof url === 'string' && url.startsWith('/api/')) {
+    const fallbackBases = [
+      'http://127.0.0.1:8000',
+      'http://localhost:8000',
+      'http://127.0.0.1:8001',
+      'http://localhost:8001',
+      'http://127.0.0.1:8080',
+      'http://localhost:8080',
+      'http://127.0.0.1:5000',
+      'http://localhost:5000',
+      'http://127.0.0.1:9000',
+      'http://localhost:9000',
+      'http://127.0.0.1:7000',
+      'http://localhost:7000',
+    ].filter(
+      (base) => base !== window.location.origin,
+    );
+    for (const base of fallbackBases) {
+      const candidate = `${base}${url}`;
+      const fallbackRes = await tryFetch(candidate);
+      if (fallbackRes && fallbackRes.status !== 404) {
+        res = fallbackRes;
+        break;
+      }
+      if (fallbackRes && fallbackRes.ok) {
+        res = fallbackRes;
+        break;
+      }
+    }
   }
 
-  const res = await fetch(url, { ...options, headers });
+  if (!res) {
+    throw new Error('Backend not reachable. Ensure backend is running and API base/port is correct.');
+  }
   if (!res.ok) {
     const payload = await res.json().catch(() => ({ detail: 'Request failed' }));
     if (res.status === 401) {
@@ -65,24 +118,125 @@ async function apiFetch(url, options = {}) {
   return res.json();
 }
 
-function setAuthMode(mode) {
-  const isLogin = mode === 'login';
-  loginForm.classList.toggle('hidden', !isLogin);
-  registerForm.classList.toggle('hidden', isLogin);
-  tabLogin.classList.toggle('active', isLogin);
-  tabRegister.classList.toggle('active', !isLogin);
-  authMessage.classList.add('hidden');
+function isNotFoundError(err) {
+  const msg = String(err?.message || '').toLowerCase();
+  return msg.includes('not found') || msg.includes('404');
+}
+
+async function postJsonWithRouteFallback(paths, bodyObj) {
+  let lastErr = null;
+  const payload = JSON.stringify(bodyObj);
+  for (const path of paths) {
+    try {
+      return await apiFetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+      });
+    } catch (err) {
+      lastErr = err;
+      if (!isNotFoundError(err)) throw err;
+    }
+  }
+  throw lastErr || new Error('Requested API route was not found.');
+}
+
+async function postFormWithRouteFallback(paths, buildFormData) {
+  let lastErr = null;
+  for (const path of paths) {
+    try {
+      return await apiFetch(path, {
+        method: 'POST',
+        body: buildFormData(),
+      });
+    } catch (err) {
+      lastErr = err;
+      if (!isNotFoundError(err)) throw err;
+    }
+  }
+  throw lastErr || new Error('Requested API route was not found.');
+}
+
+function buildFallbackResumeFromRelevance(data, context) {
+  const candidateName = (context.candidate_name || '').trim() || (currentUser?.display_name || 'Candidate');
+  const role = context.role || 'Target Role';
+  const company = context.company || 'Target Company';
+  const strengths = (data.strengths || []).slice(0, 6).map((s) => `- ${s}`).join('\n');
+  const actions = (data.priority_actions || data.suggestions || []).slice(0, 8).map((s) => `- ${s}`).join('\n');
+  const sourceCv = (context.cv_text || '').trim();
+
+  return [
+    `${candidateName}`,
+    `Applying for: ${role} | ${company}`,
+    '',
+    'PROFESSIONAL SUMMARY',
+    data.summary || 'Strong profile with clear fit to the target role.',
+    '',
+    'CORE ALIGNMENT HIGHLIGHTS',
+    strengths || '- Demonstrated role-relevant experience and outcomes.',
+    '',
+    'STRATEGIC IMPROVEMENTS TO APPLY',
+    actions || '- Strengthen role-specific achievements and measurable business outcomes.',
+    '',
+    'ORIGINAL CV SOURCE',
+    sourceCv || '[Attach/paste CV text for a fuller revised draft]',
+  ].join('\n');
+}
+
+function adaptRelevanceToResumeResult(data, context) {
+  const resumeDraft = buildFallbackResumeFromRelevance(data, context);
+  const improvementKeywords = (data.gaps || []).slice(0, 12);
+  const fallbackMods = (data.priority_actions || []).slice(0, 6).map((action, idx) => ({
+    line_number: idx + 1,
+    current_line: 'Update required in role-alignment section',
+    proposed_line: action,
+    why_change: 'Improve clarity of relevance against target JD requirements.',
+    impact: 'Improves recruiter readability and semantic ATS match.',
+    priority: idx < 2 ? 'high' : 'medium',
+  }));
+  return {
+    title: context.title,
+    role: context.role,
+    company: context.company,
+    relevance_score: Number(data.relevance_score || 0),
+    baseline_summary: data.summary || '',
+    detailed_strategy: data.detailed_summary || '',
+    revised_resume: resumeDraft,
+    revision_rationale: (data.priority_actions || data.suggestions || []).slice(0, 12),
+    ats_keywords_added: improvementKeywords,
+    line_level_modifications: fallbackMods,
+    generated_cover_letter: data.generated_cover_letter || null,
+    credits_remaining: currentUser?.is_unlimited ? null : Number(currentUser?.credits_remaining ?? 0),
+    is_unlimited: Boolean(currentUser?.is_unlimited),
+    llm_enhanced: Boolean(data.llm_enhanced),
+  };
+}
+
+function renderUserIdentity(user) {
+  const plan = userPlanLabel(user);
+  const credits = creditsLabel(user);
+  sidebarUser.textContent = `${user.display_name} (${user.email}) | ${plan} | Credits: ${credits}`;
+  document.getElementById('profile-name').textContent = user.display_name;
+  document.getElementById('profile-email').textContent = user.email;
+  document.getElementById('profile-plan').textContent = plan;
+  document.getElementById('profile-credits').textContent = credits;
+  document.getElementById('profile-joined').textContent = new Date(user.created_at).toLocaleString();
+}
+
+async function refreshCurrentUser() {
+  if (!currentUser) return;
+  try {
+    const me = await apiFetch('/api/v1/auth/me');
+    currentUser = me;
+    renderUserIdentity(me);
+  } catch (_err) {}
 }
 
 function showApp(user) {
   currentUser = user;
   authScreen.classList.add('hidden');
   appShell.classList.remove('hidden');
-  sidebarUser.textContent = `${user.display_name} (${user.email})`;
-  document.getElementById('profile-name').textContent = user.display_name;
-  document.getElementById('profile-email').textContent = user.email;
-  document.getElementById('profile-joined').textContent = new Date(user.created_at).toLocaleString();
-
+  renderUserIdentity(user);
   const pathView = routeToView[window.location.pathname] || 'dashboard';
   openView(pathView, { updateUrl: true });
 }
@@ -91,21 +245,17 @@ function showAuth() {
   currentUser = null;
   appShell.classList.add('hidden');
   authScreen.classList.remove('hidden');
-  setAuthMode('login');
-  if (window.location.pathname !== '/login') {
-    window.history.replaceState({}, '', '/login');
-  }
+  loginForm.classList.remove('hidden');
+  authMessage.classList.add('hidden');
+  if (window.location.pathname !== '/login') window.history.replaceState({}, '', '/login');
 }
 
 function openView(viewName, options = {}) {
   const { updateUrl = true } = options;
-  if (!currentUser) {
-    showAuth();
-    return;
-  }
+  if (!currentUser) return showAuth();
 
-  document.querySelectorAll('.view').forEach((view) => view.classList.add('hidden'));
-  document.querySelectorAll('.menu-btn[data-view]').forEach((btn) => btn.classList.remove('active'));
+  document.querySelectorAll('.view').forEach((v) => v.classList.add('hidden'));
+  document.querySelectorAll('.menu-btn[data-view]').forEach((b) => b.classList.remove('active'));
 
   const viewEl = document.getElementById(`view-${viewName}`);
   if (!viewEl) return;
@@ -119,9 +269,7 @@ function openView(viewName, options = {}) {
 
   if (updateUrl) {
     const targetPath = viewToRoute[viewName] || '/dashboard';
-    if (window.location.pathname !== targetPath) {
-      window.history.pushState({ view: viewName }, '', targetPath);
-    }
+    if (window.location.pathname !== targetPath) window.history.pushState({ view: viewName }, '', targetPath);
   }
 
   if (viewName === 'dashboard') loadDashboard();
@@ -129,103 +277,277 @@ function openView(viewName, options = {}) {
 }
 
 function formatEmotionScores(scores = []) {
-  return scores
-    .slice(0, 6)
-    .map((item) => `${escapeHtml(item.emotion)} (${(item.score * 100).toFixed(1)}%)`)
-    .join(', ');
+  return scores.slice(0, 6).map((i) => `${escapeHtml(i.emotion)} (${(i.score * 100).toFixed(1)}%)`).join(', ');
 }
 
-function renderAnalyzeResult(data) {
-  const scores = formatEmotionScores(data.emotion_scores || []);
-  const suggestions = (data.suggestions || [])
-    .map((s) => `<li>${escapeHtml(s)}</li>`)
-    .join('');
+function formatHistoryScore(item) {
+  if (item.score == null) return 'n/a';
+  if (item.module === 'sentiment') return `${(Number(item.score) * 100).toFixed(2)}% confidence`;
+  if (item.module === 'learning') return `${Number(item.score).toFixed(2)} mastery`;
+  return `${Number(item.score).toFixed(2)} relevance`;
+}
 
+function renderModuleAnalytics(items = []) {
+  if (!items.length) return '<p class="muted">No analytics yet.</p>';
+  return items.map((m) => `
+    <article class="history-item">
+      <p><span class="tag">${escapeHtml((m.module || 'module').toUpperCase())}</span></p>
+      <p><strong>Total Analyses:</strong> ${Number(m.total_analyses || 0)}</p>
+      <p><strong>Average Score:</strong> ${m.average_score != null ? Number(m.average_score).toFixed(2) : 'n/a'}</p>
+      <p class="muted tiny"><strong>Last Run:</strong> ${m.last_run_at ? new Date(m.last_run_at).toLocaleString() : '-'}</p>
+    </article>
+  `).join('');
+}
+
+async function loadDashboard() {
+  const data = await apiFetch('/api/v1/dashboard/summary');
+  document.getElementById('stat-total').textContent = data.total_documents;
+  document.getElementById('stat-total-analyses').textContent = data.total_analyses ?? 0;
+  document.getElementById('stat-alert').textContent = data.high_alert_documents;
+  document.getElementById('stat-last').textContent = data.last_analysis_at ? new Date(data.last_analysis_at).toLocaleString() : '-';
+  document.getElementById('stat-top-emotions').textContent = formatEmotionScores(data.top_emotions || []) || '-';
+  document.getElementById('dashboard-module-analytics').innerHTML = renderModuleAnalytics(data.module_analytics || []);
+  await loadModelDetails();
+}
+
+async function loadModelDetails() {
+  const meta = document.getElementById('model-meta');
+  const metrics = document.getElementById('model-metrics');
+  try {
+    const d = await apiFetch('/api/v1/model/details');
+    meta.textContent = `${d.model_name} (${d.model_version}) | labels: ${d.labels.length}`;
+    metrics.textContent = `micro-F1: ${d.train_metrics?.micro_f1 ?? 'n/a'}, macro-F1: ${d.train_metrics?.macro_f1 ?? 'n/a'}, samples: ${d.train_metrics?.samples ?? 'n/a'}`;
+  } catch (err) {
+    meta.textContent = 'Model details unavailable';
+    metrics.textContent = String(err.message || '');
+  }
+}
+
+async function loadHistory() {
+  const list = document.getElementById('history-list');
+  list.innerHTML = '<p class="muted">Loading...</p>';
+  try {
+    const items = await apiFetch('/api/v1/documents/history');
+    if (!items.length) {
+      list.innerHTML = '<p class="muted">No history yet.</p>';
+      return;
+    }
+    list.innerHTML = items.map((item) => {
+      const moduleTag = escapeHtml((item.module || 'general').toUpperCase());
+      const suggestions = (item.suggestions || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+      const details = item.details || {};
+      let detailBlock = '';
+      if (item.module === 'sentiment') {
+        detailBlock = `<p><strong>Top Scores:</strong> ${formatEmotionScores(details.emotion_scores || []) || 'n/a'}</p>`;
+      } else if (item.module === 'relevance') {
+        if ((item.label || '').toLowerCase() === 'resume_generation' || details.revised_resume) {
+          const rationale = (item.suggestions || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+          const keywords = (details.ats_keywords_added || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+          const mods = (details.line_level_modifications || []).map((m) => `
+            <article class="resume-mod-item">
+              <p><strong>Line ${Number(m.line_number || 0)} | Priority:</strong> ${escapeHtml((m.priority || 'medium').toUpperCase())}</p>
+              <p><strong>Current:</strong> ${escapeHtml(m.current_line || '')}</p>
+              <p><strong>Proposed:</strong> ${escapeHtml(m.proposed_line || '')}</p>
+              <p><strong>Why:</strong> ${escapeHtml(m.why_change || '')}</p>
+              <p><strong>Impact:</strong> ${escapeHtml(m.impact || '')}</p>
+            </article>
+          `).join('');
+          detailBlock = `
+            <pre>${escapeHtml(details.detailed_strategy || '')}</pre>
+            <p><strong>Line-by-Line Modification Plan:</strong></p>
+            ${mods || '<p class="muted">No line-level modifications captured.</p>'}
+            <p><strong>ATS Keywords Added:</strong></p><ul>${keywords || '<li>n/a</li>'}</ul>
+            <p><strong>Revision Rationale:</strong></p><ul>${rationale || '<li>n/a</li>'}</ul>
+            <div><strong>Revised Resume:</strong><pre>${escapeHtml(details.revised_resume || '')}</pre></div>
+          `;
+        } else {
+          const priorities = (details.priority_actions || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+          const risks = (details.risk_flags || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+          const detailedSummary = details.detailed_summary ? `<pre>${escapeHtml(details.detailed_summary)}</pre>` : '';
+          detailBlock = `
+            ${detailedSummary}
+            <p><strong>Tone:</strong> ${escapeHtml(details.communication_tone || 'n/a')}</p>
+            <p><strong>Priority Actions:</strong></p><ul>${priorities || '<li>n/a</li>'}</ul>
+            <p><strong>Risk Flags:</strong></p><ul>${risks || '<li>n/a</li>'}</ul>
+          `;
+        }
+      } else if (item.module === 'learning') {
+        if ((item.label || '').toLowerCase() === 'learning_qa' || details.question_text) {
+          const steps = (details.logical_steps || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+          const concepts = (details.key_concepts || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+          const mistakes = (details.common_mistakes || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+          const refs = (details.references || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+          detailBlock = `
+            <p><strong>Question:</strong> ${escapeHtml(details.question_text || 'n/a')}</p>
+            <div class="qa-compare-grid">
+              <article class="qa-box qa-box-student">
+                <h4>Student Current Answer</h4>
+                <p>${escapeHtml(details.current_answer || 'Not provided')}</p>
+              </article>
+              <article class="qa-box qa-box-correct">
+                <h4>Correct Answer</h4>
+                <p>${escapeHtml(details.correct_answer || 'n/a')}</p>
+              </article>
+            </div>
+            <p><strong>Verdict:</strong> <span class="qa-verdict qa-verdict-${escapeHtml(details.answer_verdict || 'review_required')}">${escapeHtml(details.answer_verdict || 'review_required')}</span></p>
+            <pre>${escapeHtml(details.answer_feedback || '')}</pre>
+            <pre>${escapeHtml(details.detailed_explanation || '')}</pre>
+            <p><strong>Logical Steps:</strong></p><ul>${steps || '<li>n/a</li>'}</ul>
+            <p><strong>Key Concepts:</strong></p><ul>${concepts || '<li>n/a</li>'}</ul>
+            <p><strong>Common Mistakes:</strong></p><ul>${mistakes || '<li>n/a</li>'}</ul>
+            <p><strong>References:</strong></p><ul>${refs || '<li>n/a</li>'}</ul>
+          `;
+        } else {
+          const retained = (details.retained_topics || []).join(', ');
+          const weak = (details.weak_topics || []).join(', ');
+          const plan = (details.study_plan || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+          detailBlock = `
+            <p><strong>Retained Topics:</strong> ${escapeHtml(retained || 'n/a')}</p>
+            <p><strong>Weak Topics:</strong> ${escapeHtml(weak || 'n/a')}</p>
+            <p><strong>Study Plan:</strong></p><ul>${plan || '<li>n/a</li>'}</ul>
+          `;
+        }
+      }
+      return `
+        <article class="history-item">
+          <h3>${escapeHtml(item.title)}</h3>
+          <p class="muted tiny">${new Date(item.created_at).toLocaleString()} | ${escapeHtml(item.source_type)}</p>
+          <p><span class="tag">${moduleTag}</span> <span class="tag">${escapeHtml(item.analysis_type || 'analysis')}</span> <span class="tag">${escapeHtml(item.label || 'n/a')}</span></p>
+          <p><strong>Score:</strong> ${escapeHtml(formatHistoryScore(item))}</p>
+          <pre>${escapeHtml(item.summary || '')}</pre>
+          ${detailBlock}
+          <ul>${suggestions || '<li>No suggestions</li>'}</ul>
+        </article>
+      `;
+    }).join('');
+  } catch (err) {
+    list.innerHTML = `<p class="muted">${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function renderRelevanceResult(data) {
+  const metricRows = Object.entries(data.metrics || {}).map(([k, v]) => `<li>${escapeHtml(k)}: ${Number(v).toFixed(2)}</li>`).join('');
+  const suggestions = (data.suggestions || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+  const priority = (data.priority_actions || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+  const risks = (data.risk_flags || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+  const strengths = (data.strengths || []).slice(0, 10).join(', ');
+  const gaps = (data.gaps || []).slice(0, 10).join(', ');
+  const cover = data.generated_cover_letter ? `<pre>${escapeHtml(data.generated_cover_letter)}</pre>` : '';
+  const detailed = data.detailed_summary ? `<pre>${escapeHtml(data.detailed_summary)}</pre>` : '';
+  return `
+    <div><strong>Relevance Score:</strong> ${Number(data.relevance_score).toFixed(2)}%</div>
+    <div><strong>Type:</strong> ${escapeHtml(data.analysis_type)} | <strong>LLM Enhanced:</strong> ${data.llm_enhanced ? 'Yes' : 'No'}</div>
+    <pre>${escapeHtml(data.summary)}</pre>
+    ${detailed}
+    <div><strong>Communication Tone:</strong> ${escapeHtml(data.communication_tone || 'n/a')}</div>
+    <div><strong>Strengths:</strong> ${escapeHtml(strengths || 'n/a')}</div>
+    <div><strong>Gaps:</strong> ${escapeHtml(gaps || 'n/a')}</div>
+    <div><strong>Metrics:</strong><ul>${metricRows}</ul></div>
+    <div><strong>Priority Actions:</strong><ul>${priority || '<li>n/a</li>'}</ul></div>
+    <div><strong>Risk Flags:</strong><ul>${risks || '<li>n/a</li>'}</ul></div>
+    <div><strong>Suggestions:</strong><ul>${suggestions}</ul></div>
+    ${cover ? `<div><strong>Generated Cover Letter:</strong>${cover}</div>` : ''}
+  `;
+}
+
+function renderResumeGenerationResult(data) {
+  const rationale = (data.revision_rationale || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+  const keywords = (data.ats_keywords_added || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+  const mods = (data.line_level_modifications || []).map((m) => `
+    <article class="resume-mod-item">
+      <p><strong>Line ${Number(m.line_number || 0)} | Priority:</strong> ${escapeHtml((m.priority || 'medium').toUpperCase())}</p>
+      <p><strong>Current:</strong> ${escapeHtml(m.current_line || '')}</p>
+      <p><strong>Proposed:</strong> ${escapeHtml(m.proposed_line || '')}</p>
+      <p><strong>Why:</strong> ${escapeHtml(m.why_change || '')}</p>
+      <p><strong>Impact:</strong> ${escapeHtml(m.impact || '')}</p>
+    </article>
+  `).join('');
+  const credits = data.is_unlimited ? 'Unlimited' : String(data.credits_remaining ?? 0);
+  const plan = data.is_unlimited ? 'Unlimited Access' : 'Standard Access';
+  const cover = data.generated_cover_letter ? `<pre>${escapeHtml(data.generated_cover_letter)}</pre>` : '';
+  return `
+    <div><strong>Role:</strong> ${escapeHtml(data.role || 'n/a')} | <strong>Company:</strong> ${escapeHtml(data.company || 'n/a')}</div>
+    <div><strong>Relevance Score:</strong> ${Number(data.relevance_score).toFixed(2)}%</div>
+    <div><strong>Plan:</strong> ${plan} | <strong>Credits Remaining:</strong> ${escapeHtml(credits)}</div>
+    <pre>${escapeHtml(data.baseline_summary || '')}</pre>
+    <pre>${escapeHtml(data.detailed_strategy || '')}</pre>
+    <div><strong>Line-by-Line Modification Plan:</strong>${mods || '<p class="muted">No line-level modifications generated.</p>'}</div>
+    <div><strong>Revision Rationale:</strong><ul>${rationale || '<li>n/a</li>'}</ul></div>
+    <div><strong>ATS Keywords Added:</strong><ul>${keywords || '<li>n/a</li>'}</ul></div>
+    <div><strong>Revised Resume:</strong><pre>${escapeHtml(data.revised_resume || '')}</pre></div>
+    ${cover ? `<div><strong>Generated Cover Letter:</strong>${cover}</div>` : ''}
+  `;
+}
+
+function renderLearningResult(data) {
+  const retained = (data.retained_topics || []).join(', ');
+  const weak = (data.weak_topics || []).join(', ');
+  const suggestions = (data.suggestions || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+  const plan = (data.study_plan || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+  return `
+    <div><strong>Subject:</strong> ${escapeHtml(data.subject)} | <strong>LLM Enhanced:</strong> ${data.llm_enhanced ? 'Yes' : 'No'}</div>
+    <div><strong>Mastery Score:</strong> ${data.mastery_score != null ? Number(data.mastery_score).toFixed(2) : 'n/a'}</div>
+    <pre>${escapeHtml(data.storytelling_summary)}</pre>
+    <pre>${escapeHtml(data.detailed_feedback || '')}</pre>
+    <div><strong>Retained Topics:</strong> ${escapeHtml(retained || 'n/a')}</div>
+    <div><strong>Weak Topics:</strong> ${escapeHtml(weak || 'n/a')}</div>
+    <div><strong>Study Plan:</strong><ul>${plan || '<li>n/a</li>'}</ul></div>
+    <div><strong>Suggestions:</strong><ul>${suggestions}</ul></div>
+  `;
+}
+
+function renderLearningQAResult(data) {
+  const steps = (data.logical_steps || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+  const concepts = (data.key_concepts || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+  const mistakes = (data.common_mistakes || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+  const practice = (data.practice_questions || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+  const refs = (data.references || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+  return `
+    <div><strong>Subject:</strong> ${escapeHtml(data.subject)} | <strong>Complexity:</strong> ${escapeHtml(data.complexity_level || 'n/a')} | <strong>LLM Enhanced:</strong> ${data.llm_enhanced ? 'Yes' : 'No'}</div>
+    <p><strong>Question:</strong> ${escapeHtml(data.question_text || '')}</p>
+    <div class="qa-compare-grid">
+      <article class="qa-box qa-box-student">
+        <h4>Student Current Answer</h4>
+        <p>${escapeHtml(data.current_answer || 'Not provided')}</p>
+      </article>
+      <article class="qa-box qa-box-correct">
+        <h4>Correct Answer</h4>
+        <p>${escapeHtml(data.correct_answer || 'n/a')}</p>
+      </article>
+    </div>
+    <p><strong>Verdict:</strong> <span class="qa-verdict qa-verdict-${escapeHtml(data.answer_verdict || 'review_required')}">${escapeHtml(data.answer_verdict || 'review_required')}</span></p>
+    <pre>${escapeHtml(data.answer_feedback || '')}</pre>
+    <pre>${escapeHtml(data.concise_answer || '')}</pre>
+    <pre>${escapeHtml(data.detailed_explanation || '')}</pre>
+    <div><strong>Logical Steps:</strong><ul>${steps || '<li>n/a</li>'}</ul></div>
+    <div><strong>Key Concepts:</strong><ul>${concepts || '<li>n/a</li>'}</ul></div>
+    <div><strong>Common Mistakes:</strong><ul>${mistakes || '<li>n/a</li>'}</ul></div>
+    <div><strong>Practice Questions:</strong><ul>${practice || '<li>n/a</li>'}</ul></div>
+    <div><strong>References:</strong><ul>${refs || '<li>n/a</li>'}</ul></div>
+  `;
+}
+
+function renderSentimentResult(data) {
+  const suggestions = (data.suggestions || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
   return `
     <div><strong>Primary Emotion:</strong> ${escapeHtml(data.label)} (${(data.confidence * 100).toFixed(2)}%)</div>
     <div><strong>Selected Metrics:</strong> ${escapeHtml((data.selected_metrics || []).join(', ') || 'all')}</div>
-    <div><strong>Top Scores:</strong> ${scores || 'n/a'}</div>
+    <div><strong>Top Scores:</strong> ${formatEmotionScores(data.emotion_scores || []) || 'n/a'}</div>
     <div><strong>Summary:</strong> ${escapeHtml(data.summary || '')}</div>
     <div><strong>Suggestions:</strong><ul>${suggestions || '<li>No suggestions</li>'}</ul></div>
   `;
 }
 
-async function loadDashboard() {
-  try {
-    const data = await apiFetch('/api/v1/dashboard/summary');
-    document.getElementById('stat-total').textContent = data.total_documents;
-    document.getElementById('stat-alert').textContent = data.high_alert_documents;
-    document.getElementById('stat-last').textContent = data.last_analysis_at
-      ? new Date(data.last_analysis_at).toLocaleString()
-      : '-';
-    document.getElementById('stat-top-emotions').textContent = formatEmotionScores(data.top_emotions || []) || '-';
-    await loadModelDetails();
-  } catch (err) {
-    showMessage(document.getElementById('analyze-result'), escapeHtml(err.message), true);
-  }
-}
-
-async function loadModelDetails() {
-  const metaEl = document.getElementById('model-meta');
-  const metricsEl = document.getElementById('model-metrics');
-  try {
-    const details = await apiFetch('/api/v1/model/details');
-    metaEl.textContent = `${details.model_name} (${details.model_version}) | labels: ${details.labels.length}`;
-    const micro = details.train_metrics?.micro_f1;
-    const macro = details.train_metrics?.macro_f1;
-    const samples = details.train_metrics?.samples;
-    metricsEl.textContent = `training metrics -> micro-F1: ${micro ?? 'n/a'}, macro-F1: ${macro ?? 'n/a'}, samples: ${samples ?? 'n/a'}`;
-  } catch (err) {
-    metaEl.textContent = 'Model details unavailable';
-    metricsEl.textContent = String(err.message || '');
-  }
-}
-
-async function loadHistory() {
-  const historyList = document.getElementById('history-list');
-  historyList.innerHTML = '<p class="muted">Loading...</p>';
-
-  try {
-    const items = await apiFetch('/api/v1/documents/history');
-    if (!items.length) {
-      historyList.innerHTML = '<p class="muted">No history yet.</p>';
-      return;
-    }
-
-    historyList.innerHTML = items
-      .map((item) => {
-        const confidence = item.confidence != null ? `${(item.confidence * 100).toFixed(2)}%` : 'n/a';
-        const topScores = formatEmotionScores(item.emotion_scores || []);
-        const suggestions = (item.suggestions || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
-
-        return `
-          <article class="history-item">
-            <h3>${escapeHtml(item.title)}</h3>
-            <p class="muted tiny">${new Date(item.created_at).toLocaleString()} | Source: ${escapeHtml(item.source_type)}${item.file_name ? ` | File: ${escapeHtml(item.file_name)}` : ''}</p>
-            <p><span class="tag">Primary: ${escapeHtml(item.label || 'n/a')}</span> Confidence: ${confidence}</p>
-            <p><strong>Metrics:</strong> ${escapeHtml((item.selected_metrics || []).join(', ') || 'all')}</p>
-            <p><strong>Top Scores:</strong> ${topScores || 'n/a'}</p>
-            <p><strong>Summary:</strong> ${escapeHtml(item.summary || '')}</p>
-            <ul>${suggestions || '<li>No suggestions</li>'}</ul>
-          </article>
-        `;
-      })
-      .join('');
-  } catch (err) {
-    historyList.innerHTML = `<p class="muted">${escapeHtml(err.message)}</p>`;
-  }
-}
-
 loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-
   try {
     const data = await apiFetch('/api/v1/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({
+        email: document.getElementById('login-email').value.trim(),
+        password: document.getElementById('login-password').value,
+      }),
     });
     localStorage.setItem(ACCESS_TOKEN_KEY, data.access_token);
     showApp(data.user);
@@ -234,39 +556,188 @@ loginForm.addEventListener('submit', async (event) => {
   }
 });
 
-registerForm.addEventListener('submit', async (event) => {
+document.getElementById('relevance-form').addEventListener('submit', async (event) => {
   event.preventDefault();
-  const display_name = document.getElementById('register-name').value.trim();
-  const email = document.getElementById('register-email').value.trim();
-  const password = document.getElementById('register-password').value;
+  const target = document.getElementById('relevance-result');
+
+  const docFile = document.getElementById('rel-doc-file').files[0];
+  const refFile = document.getElementById('rel-ref-file').files[0];
+  const docText = document.getElementById('rel-doc').value;
+  const refText = document.getElementById('rel-ref').value;
 
   try {
-    const data = await apiFetch('/api/v1/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ display_name, email, password }),
-    });
-    localStorage.setItem(ACCESS_TOKEN_KEY, data.access_token);
-    showApp(data.user);
+    let data;
+    if (docFile || refFile) {
+      const fd = new FormData();
+      fd.append('title', document.getElementById('rel-title').value.trim());
+      fd.append('analysis_type', document.getElementById('rel-type').value);
+      fd.append('role', document.getElementById('rel-role').value.trim());
+      fd.append('company', document.getElementById('rel-company').value.trim());
+      fd.append('context_notes', document.getElementById('rel-notes').value);
+      fd.append('document_text', docText);
+      fd.append('reference_text', refText);
+      if (docFile) fd.append('document_file', docFile);
+      if (refFile) fd.append('reference_file', refFile);
+      data = await apiFetch('/api/v1/relevance/analyze-file', { method: 'POST', body: fd });
+    } else {
+      data = await apiFetch('/api/v1/relevance/analyze-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: document.getElementById('rel-title').value.trim(),
+          analysis_type: document.getElementById('rel-type').value,
+          role: document.getElementById('rel-role').value.trim(),
+          company: document.getElementById('rel-company').value.trim(),
+          document_text: docText,
+          reference_text: refText,
+          context_notes: document.getElementById('rel-notes').value,
+        }),
+      });
+    }
+    showMessage(target, renderRelevanceResult(data));
+    loadHistory();
+    loadDashboard();
   } catch (err) {
-    showMessage(authMessage, escapeHtml(err.message), true);
+    const msg = (err.message || '').toLowerCase().includes('not found')
+      ? 'Relevance endpoint was not found. Verify backend is running and restart if needed.'
+      : err.message;
+    showMessage(target, escapeHtml(msg), true);
   }
 });
 
-document.getElementById('text-form').addEventListener('submit', async (event) => {
+document.getElementById('resume-generate-form').addEventListener('submit', async (event) => {
   event.preventDefault();
-  const target = document.getElementById('analyze-result');
-  const title = document.getElementById('text-title').value.trim();
-  const content = document.getElementById('text-content').value.trim();
-  const emotion_metrics = document.getElementById('text-metrics').value.trim();
+  const target = document.getElementById('resume-generate-result');
+
+  const cvFile = document.getElementById('resume-cv-file').files[0];
+  const jdFile = document.getElementById('resume-jd-file').files[0];
+  const cvText = document.getElementById('resume-cv-text').value;
+  const jdText = document.getElementById('resume-jd-text').value;
 
   try {
-    const data = await apiFetch('/api/v1/documents/analyze-text', {
+    const requestContext = {
+      title: document.getElementById('resume-title').value.trim(),
+      role: document.getElementById('resume-role').value.trim(),
+      company: document.getElementById('resume-company').value.trim(),
+      candidate_name: document.getElementById('resume-candidate-name').value.trim(),
+      context_notes: document.getElementById('resume-context-notes').value.trim(),
+      cv_text: cvText,
+      jd_text: jdText,
+    };
+    let data;
+    if (cvFile || jdFile) {
+      const buildResumeForm = () => {
+        const fd = new FormData();
+        fd.append('title', requestContext.title);
+        fd.append('role', requestContext.role);
+        fd.append('company', requestContext.company);
+        fd.append('candidate_name', requestContext.candidate_name);
+        fd.append('context_notes', requestContext.context_notes);
+        fd.append('cv_text', requestContext.cv_text);
+        fd.append('jd_text', requestContext.jd_text);
+        if (cvFile) fd.append('cv_file', cvFile);
+        if (jdFile) fd.append('jd_file', jdFile);
+        return fd;
+      };
+      try {
+        data = await postFormWithRouteFallback(
+          [
+            '/api/v1/relevance/generate-resume-file',
+            '/api/v1/relevance/generate-resume-file/',
+            '/api/v1/relevance/generate_resume_file',
+            '/api/v1/relevance/generate_resume_file/',
+            '/api/v1/relevance/resume-generator',
+            '/api/relevance/generate-resume-file',
+            '/api/relevance/generate_resume_file',
+            '/api/relevance/resume-generator',
+            '/relevance/generate-resume-file',
+            '/relevance/generate_resume_file',
+            '/relevance/resume-generator',
+          ],
+          buildResumeForm,
+        );
+      } catch (routeErr) {
+        if (!isNotFoundError(routeErr)) throw routeErr;
+        const buildAnalyzeForm = () => {
+          const fd = new FormData();
+          fd.append('title', requestContext.title);
+          fd.append('analysis_type', 'resume_jd');
+          fd.append('role', requestContext.role);
+          fd.append('company', requestContext.company);
+          fd.append('context_notes', requestContext.context_notes);
+          fd.append('document_text', requestContext.cv_text);
+          fd.append('reference_text', requestContext.jd_text);
+          if (cvFile) fd.append('document_file', cvFile);
+          if (jdFile) fd.append('reference_file', jdFile);
+          return fd;
+        };
+        const relevanceData = await postFormWithRouteFallback(
+          ['/api/v1/relevance/analyze-file', '/relevance/analyze-file'],
+          buildAnalyzeForm,
+        );
+        data = adaptRelevanceToResumeResult(relevanceData, requestContext);
+      }
+    } else {
+      try {
+        data = await postJsonWithRouteFallback(
+          [
+            '/api/v1/relevance/generate-resume',
+            '/api/v1/relevance/generate-resume/',
+            '/api/v1/relevance/generate_resume',
+            '/api/v1/relevance/generate_resume/',
+            '/api/v1/relevance/resume-generator',
+            '/api/relevance/generate-resume',
+            '/api/relevance/generate_resume',
+            '/api/relevance/resume-generator',
+            '/relevance/generate-resume',
+            '/relevance/generate_resume',
+            '/relevance/resume-generator',
+          ],
+          requestContext,
+        );
+      } catch (routeErr) {
+        if (!isNotFoundError(routeErr)) throw routeErr;
+        const relevanceData = await postJsonWithRouteFallback(
+          ['/api/v1/relevance/analyze-text', '/relevance/analyze-text'],
+          {
+            title: requestContext.title,
+            analysis_type: 'resume_jd',
+            role: requestContext.role,
+            company: requestContext.company,
+            document_text: requestContext.cv_text,
+            reference_text: requestContext.jd_text,
+            context_notes: requestContext.context_notes,
+          },
+        );
+        data = adaptRelevanceToResumeResult(relevanceData, requestContext);
+      }
+    }
+    showMessage(target, renderResumeGenerationResult(data));
+    await refreshCurrentUser();
+    loadHistory();
+    loadDashboard();
+  } catch (err) {
+    const msg = (err.message || '').toLowerCase().includes('not found')
+      ? 'Resume generation endpoint was not found. Verify backend/API base and retry.'
+      : err.message;
+    showMessage(target, escapeHtml(msg), true);
+  }
+});
+
+document.getElementById('sentiment-text-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const target = document.getElementById('sentiment-result');
+  try {
+    const data = await apiFetch('/api/v1/sentiment/analyze-text', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content, emotion_metrics }),
+      body: JSON.stringify({
+        title: document.getElementById('sentiment-text-title').value.trim(),
+        content: document.getElementById('sentiment-text-content').value.trim(),
+        emotion_metrics: document.getElementById('sentiment-metrics').value.trim(),
+      }),
     });
-    showMessage(target, renderAnalyzeResult(data));
+    showMessage(target, renderSentimentResult(data));
     event.target.reset();
     loadDashboard();
   } catch (err) {
@@ -274,31 +745,100 @@ document.getElementById('text-form').addEventListener('submit', async (event) =>
   }
 });
 
-document.getElementById('file-form').addEventListener('submit', async (event) => {
+document.getElementById('sentiment-file-form').addEventListener('submit', async (event) => {
   event.preventDefault();
-  const target = document.getElementById('analyze-result');
-  const title = document.getElementById('file-title').value.trim();
-  const emotion_metrics = document.getElementById('file-metrics').value.trim();
-  const fileInput = document.getElementById('file-input');
-  const file = fileInput.files[0];
-
-  if (!file) {
-    showMessage(target, 'Please select a file.', true);
-    return;
+  const target = document.getElementById('sentiment-result');
+  const file = document.getElementById('sentiment-file-input').files[0];
+  if (!file) return showMessage(target, 'Please select a file.', true);
+  const fd = new FormData();
+  fd.append('title', document.getElementById('sentiment-file-title').value.trim());
+  fd.append('emotion_metrics', document.getElementById('sentiment-file-metrics').value.trim());
+  fd.append('file', file);
+  try {
+    const data = await apiFetch('/api/v1/sentiment/analyze-file', { method: 'POST', body: fd });
+    showMessage(target, renderSentimentResult(data));
+    event.target.reset();
+    loadDashboard();
+  } catch (err) {
+    showMessage(target, escapeHtml(err.message), true);
   }
+});
 
-  const formData = new FormData();
-  formData.append('title', title);
-  formData.append('emotion_metrics', emotion_metrics);
-  formData.append('file', file);
+document.getElementById('learning-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const target = document.getElementById('learning-result');
+
+  const chapterFile = document.getElementById('learn-chapter-file').files[0];
+  const notesFile = document.getElementById('learn-notes-file').files[0];
 
   try {
-    const data = await apiFetch('/api/v1/documents/analyze-file', {
-      method: 'POST',
-      body: formData,
-    });
-    showMessage(target, renderAnalyzeResult(data));
-    event.target.reset();
+    let data;
+    if (chapterFile || notesFile) {
+      const fd = new FormData();
+      fd.append('subject', document.getElementById('learn-subject').value);
+      fd.append('chapter_text', document.getElementById('learn-chapter').value);
+      fd.append('student_notes', document.getElementById('learn-notes').value);
+      if (chapterFile) fd.append('chapter_file', chapterFile);
+      if (notesFile) fd.append('student_notes_file', notesFile);
+      data = await apiFetch('/api/v1/learning/story-file', { method: 'POST', body: fd });
+    } else {
+      data = await apiFetch('/api/v1/learning/story', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: document.getElementById('learn-subject').value,
+          chapter_text: document.getElementById('learn-chapter').value,
+          student_notes: document.getElementById('learn-notes').value,
+        }),
+      });
+    }
+    showMessage(target, renderLearningResult(data));
+    loadHistory();
+    loadDashboard();
+  } catch (err) {
+    showMessage(target, escapeHtml(err.message), true);
+  }
+});
+
+document.getElementById('learning-qa-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const target = document.getElementById('learning-qa-result');
+  const body = {
+    subject: document.getElementById('qa-subject').value,
+    question_text: document.getElementById('qa-question').value.trim(),
+    student_attempt: document.getElementById('qa-attempt').value.trim(),
+    assignment_context: document.getElementById('qa-context').value.trim(),
+    grade_level: document.getElementById('qa-grade').value.trim(),
+  };
+  try {
+    let data;
+    try {
+      data = await postJsonWithRouteFallback(
+        [
+          '/api/v1/learning/question-answer',
+          '/api/v1/learning/question-answer/',
+          '/api/v1/learning/qa',
+          '/api/v1/learning/qa/',
+          '/api/v1/learning/question_answer',
+          '/api/v1/learning/question_answer/',
+          '/api/learning/question-answer',
+          '/api/learning/qa',
+          '/api/learning/question_answer',
+          '/v1/learning/question-answer',
+          '/v1/learning/qa',
+          '/v1/learning/question_answer',
+          '/learning/question-answer',
+          '/learning/qa',
+          '/learning/question_answer',
+        ],
+        body,
+      );
+    } catch (routeErr) {
+      if (!isNotFoundError(routeErr)) throw routeErr;
+      throw new Error('Student Q&A endpoint was not found. Restart backend, open /docs, and verify a POST route exists for learning question-answer.');
+    }
+    showMessage(target, renderLearningQAResult(data));
+    loadHistory();
     loadDashboard();
   } catch (err) {
     showMessage(target, escapeHtml(err.message), true);
@@ -310,41 +850,26 @@ document.querySelectorAll('.menu-btn[data-view]').forEach((button) => {
 });
 
 document.getElementById('history-refresh').addEventListener('click', loadHistory);
-
 document.getElementById('logout-btn').addEventListener('click', async () => {
   try {
     await apiFetch('/api/v1/auth/logout', { method: 'POST' });
-  } catch (_err) {
-    // Ignore logout API errors and reset UI anyway.
-  }
+  } catch (_err) {}
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   showAuth();
 });
 
-tabLogin.addEventListener('click', () => setAuthMode('login'));
-tabRegister.addEventListener('click', () => setAuthMode('register'));
-
 window.addEventListener('popstate', () => {
-  const pathView = routeToView[window.location.pathname];
-  if (!currentUser) {
-    showAuth();
-    return;
-  }
-  if (pathView) {
-    openView(pathView, { updateUrl: false });
-  } else {
-    openView('dashboard');
-  }
+  const v = routeToView[window.location.pathname];
+  if (!currentUser) return showAuth();
+  if (v) openView(v, { updateUrl: false });
+  else openView('dashboard');
 });
 
 async function bootstrap() {
-  const requestedPath = window.location.pathname;
   try {
     const me = await apiFetch('/api/v1/auth/me');
     showApp(me);
-    if (requestedPath === '/login') {
-      openView('dashboard');
-    }
+    if (window.location.pathname === '/login') openView('dashboard');
   } catch (_err) {
     showAuth();
   }

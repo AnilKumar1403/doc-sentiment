@@ -17,6 +17,7 @@ from app.emotion_taxonomy import EMOTION_LABELS, KEYWORD_LEXICON
 
 base_dir = Path(__file__).resolve().parents[1]
 data_path = base_dir / "data" / "sentiment_seed.csv"
+public_data_path = base_dir / "data" / "public_emotions.csv"
 model_path = base_dir / "models" / "sentiment_model.joblib"
 
 if not data_path.exists():
@@ -28,6 +29,12 @@ df = pd.read_csv(data_path)
 required_cols = {"text", "labels"}
 if not required_cols.issubset(df.columns):
     raise ValueError(f"Dataset must have columns: {required_cols}")
+
+if public_data_path.exists():
+    public_df = pd.read_csv(public_data_path)
+    if required_cols.issubset(public_df.columns):
+        df = pd.concat([df, public_df], ignore_index=True)
+        print(f"Merged public dataset rows: {len(public_df)}")
 
 df["labels_list"] = df["labels"].fillna("").apply(
     lambda value: [item.strip() for item in str(value).split(",") if item.strip()]

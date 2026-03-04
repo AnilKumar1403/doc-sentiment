@@ -1,181 +1,228 @@
-# Document Emotion Intelligence Platform (Single Source of Truth)
+# Anil's aquaanalysis (Single Source of Reference)
 
-This repository is an end-to-end full-stack system for authenticated document analysis using OCR + multi-emotion AI.
+Anil's aquaanalysis is a login-first AI application for:
+- Relevance analysis (resume vs JD, love letter, email, proposal, contract, general)
+- CV-to-JD revised resume generation for job applications
+- Learning analysis (Mathematics + Indian Social)
+- Student Q&A solver for homework/assignments (detailed logical answers)
+- Separate Sentiment module (same flow as earlier)
+- OCR extraction from uploaded documents
 
-It includes:
-- Login-first web app (`/login` is master entry page)
-- Account creation + authentication (JWT + HttpOnly cookie + bearer support)
-- Document ingestion (text + file upload with OCR)
-- Custom emotion metrics selection at analysis time
-- Multi-emotion classification + summary + suggestions report
-- Dashboard + history + profile
-- Persisted DB schema for users, documents, emotion results
+This README is the authoritative reference for architecture, APIs, schema, model logic, data sources, and setup.
 
----
+Integration API details with request/response examples are documented in:
+- `API_DOCS.md`
 
-## 1) Product Behavior
+## 1) Product Navigation and Separation
 
-### 1.1 Page routing and auth UX
-- Root `/` redirects to `/login`.
-- Routes:
-  - `/login`
-  - `/dashboard`
-  - `/analyze`
-  - `/history`
-  - `/profile`
-- UI hides all application views unless user is authenticated.
-- After successful login/register, UI routes to dashboard and enables navigation.
+Login-first behavior:
+- `/` redirects to `/login`
+- analysis endpoints require authentication (`401` if not logged in)
 
-### 1.2 Create account and login
-- Create account endpoint inserts a new user with hashed password.
-- Duplicate emails are rejected with `409`.
-- Login validates credentials and returns both:
-  - `access_token` (bearer)
-  - HttpOnly cookie (`access_token`)
-- Frontend stores bearer token and uses it for all API calls.
+Pages are strictly separated:
+- `/dashboard` -> analytics only
+- `/sentiment` -> sentiment-only workflows
+- `/relevance` -> relevance-only workflows
+- `/learning` -> learning-only workflows
+- `/history` -> history only
+- `/profile` -> profile/account info only
+- `/login` -> general intro content + login component + footer
 
----
+Frontend enforcement:
+- each page is rendered in a dedicated `.view`
+- hidden views use `.view.hidden { display: none !important; }` to prevent cross-page leakage
 
-## 2) AI Model (Current v3)
+## 2) UI Theme
 
-### 2.1 Model architecture
-`tfidf-ovr-logreg-keyword-hybrid` (`v3-multi-emotion`)
+App name: **Anil's aquaanalysis**
 
-Pipeline:
-1. `TfidfVectorizer` with 1-3 gram features
-2. `OneVsRestClassifier(LogisticRegression)` for multi-label emotion scoring
-3. Label threshold calibration per emotion on validation split
-4. Keyword-signal adjustment layer to improve short text robustness
+Theme style:
+- light green + light purple + light blue palette
+- clean, low-noise visual layout
+- watercolor-like gradients
+- section-specific screens without mixed content
 
-### 2.2 Emotion labels
-- anger
-- sweet
-- fear
-- sad
-- nice
-- emotional
-- love
-- drama
-- depressed
-- worried
-- tensed
-- stressed
-- sick
-- fight
-- calm
-- polite
-- joy
-- frustrated
-- hopeful
-- confused
-- grateful
+## 3) Tech Stack and Technologies
 
-### 2.3 Training dataset
-Generated synthetic multi-label dataset (`scripts/generate_seed_dataset.py`) with:
-- single-emotion examples
-- mixed-emotion examples
-- keyword-driven examples
-- contextual prefixes/suffixes
+Frontend:
+- HTML5, CSS3, Vanilla JavaScript
+- Route-state UI with login guard
 
-Current training stats are exposed by API and stored in artifact metadata.
+Backend:
+- FastAPI
+- SQLAlchemy
+- Pydantic
+- JWT auth (`python-jose`)
+- Password hashing (`passlib` + `bcrypt`)
 
-### 2.4 Model details API
-`GET /api/v1/model/details`
-Returns:
-- `model_name`
-- `model_version`
-- `labels`
-- `thresholds`
-- `train_metrics` (`micro_f1`, `macro_f1`, `samples`)
+Document and OCR:
+- `pypdf`, `python-docx`
+- `PyMuPDF`
+- `pytesseract` + `Pillow`
 
----
+AI/ML:
+- scikit-learn (`TfidfVectorizer`, `OneVsRestClassifier`, `LogisticRegression`)
+- keyword lexicon hybrid boost
+- per-label threshold calibration
 
-## 3) Analysis Logic
+Public datasets and data tools:
+- Hugging Face `datasets`
+- GoEmotions mapped dataset for stronger emotion robustness
+- Curriculum domain data for Math and Indian Social (classes 1–12 + competitive topics)
 
-### 3.1 Inputs
-You can analyze:
-- Direct text (`/api/v1/documents/analyze-text`)
-- Uploaded file (`/api/v1/documents/analyze-file`)
+LLM enhancement (optional):
+- OpenAI SDK (`openai`)
+- default model: `gpt-4o-mini`
+- configurable temperatures:
+  - relevance: `OPENAI_RELEVANCE_TEMPERATURE`
+  - learning: `OPENAI_LEARNING_TEMPERATURE`
 
-Optional metric filter:
-- `emotion_metrics`: comma-separated list
-- Example: `drama,love,anger`
+Data:
+- SQLite local default
+- PostgreSQL supported via `DATABASE_URL`
 
-### 3.2 Output report
-Each analysis returns:
-- Dominant emotion and confidence
-- Selected metrics
-- Per-metric emotion scores
-- Summary paragraph
-- Actionable suggestions list
+## 4) Models and Training
 
-### 3.3 File and OCR support
-Supported files:
-- `.txt`, `.pdf`, `.docx`, `.png`, `.jpg`, `.jpeg`, `.tiff`
+### 4.1 Emotion/Sentiment model
+Current:
+- `tfidf-ovr-logreg-keyword-hybrid`
+- `v3-multi-emotion`
 
-OCR requirement:
-- Tesseract binary installed locally
-- Optional env: `TESSERACT_CMD=/opt/homebrew/bin/tesseract`
+Training sources:
+1. synthetic multi-label corpus (`scripts/generate_seed_dataset.py`)
+2. public GoEmotions mapping (`scripts/fetch_public_dataset.py`)
 
----
+Training script:
+- `scripts/train_small_model.py`
 
-## 4) API Structure
+### 4.2 Learning domain model (Math + Indian Social)
+Curriculum datasets included:
+- `backend/data/domain/mathematics_k12_competitive.json`
+- `backend/data/domain/indian_social_studies_k12.json`
+- `backend/data/domain/indian_general_knowledge.json`
 
-### 4.1 Auth
+Domain training script:
+- `scripts/train_learning_domain_model.py`
+
+Domain inference module:
+- `backend/app/learning_domain.py`
+
+Coverage:
+- Mathematics class 1–12 topics + competitive exam topics
+- Indian Social class 1–12 topics + advanced civics/history themes
+
+## 5) API Structure
+
+### Auth
 - `POST /api/v1/auth/register`
 - `POST /api/v1/auth/login`
 - `POST /api/v1/auth/logout`
 - `GET /api/v1/auth/me`
+  - returns plan and credits metadata (`is_unlimited`, `credits_remaining`)
+  - auth response includes both `access_token` and `jwt_token`
 
-### 4.2 Model
-- `GET /api/v1/model/details`
-
-### 4.3 Documents
-- `POST /api/v1/documents/analyze-text`
-- `POST /api/v1/documents/analyze-file`
-- `POST /api/v1/documents/analyze` (legacy alias)
-- `GET /api/v1/documents/history`
-- `GET /api/v1/documents/{document_id}`
-
-### 4.4 Dashboard
+### Dashboard/Model
 - `GET /api/v1/dashboard/summary`
+- `GET /api/v1/model/details`
+  - dashboard summary now includes `module_analytics` and `total_analyses`
+  - module analytics are separated for `sentiment`, `relevance`, and `learning`
 
-### 4.5 Health
+### Sentiment module (separate)
+- `POST /api/v1/sentiment/analyze-text`
+- `POST /api/v1/sentiment/analyze-file`
+- `GET /api/v1/sentiment/history`
+
+### Relevance module
+- `POST /api/v1/relevance/analyze-text`
+- `POST /api/v1/relevance/analyze-file`
+- `POST /api/v1/relevance/generate-resume`
+- `POST /api/v1/relevance/generate-resume-file` (file support)
+  - compatibility aliases:
+    - `POST /api/v1/relevance/generate_resume`
+    - `POST /api/v1/relevance/generate_resume_file`
+    - `POST /api/v1/relevance/resume-generator`
+    - `POST /api/relevance/generate-resume`
+    - `POST /api/relevance/generate_resume`
+    - `POST /api/relevance/resume-generator`
+    - `POST /api/relevance/generate-resume-file`
+    - `POST /api/relevance/generate_resume_file`
+  - plain-path compatibility aliases for proxy/static setups:
+    - `POST /relevance/generate-resume`
+    - `POST /relevance/generate_resume`
+    - `POST /relevance/resume-generator`
+    - `POST /relevance/generate-resume-file`
+    - `POST /relevance/generate_resume_file`
+  - accepts text and/or attachments for both sides:
+    - `document_text` and/or `document_file`
+    - `reference_text` and/or `reference_file`
+  - returns richer strategic output:
+    - `summary`, `detailed_summary`
+    - `priority_actions`, `risk_flags`
+    - `communication_tone`
+    - stronger `generated_cover_letter` for `resume_jd`
+  - resume generation returns:
+    - `revised_resume`
+    - `detailed_strategy`
+    - `line_level_modifications` (line number + current text + proposed text + why + impact + priority)
+    - `revision_rationale`
+    - `ats_keywords_added`
+    - `generated_cover_letter`
+    - account metadata (`is_unlimited`, `credits_remaining`)
+
+### Learning module
+- `POST /api/v1/learning/story`
+- `POST /api/v1/learning/story-file`
+- `POST /api/v1/learning/question-answer`
+  - aliases available for compatibility:
+    - `POST /api/v1/learning/qa`
+    - `POST /api/v1/learning/question_answer`
+    - `POST /api/learning/question-answer`
+    - `POST /api/learning/qa`
+    - `POST /api/learning/question_answer`
+    - `POST /learning/question-answer`
+    - `POST /learning/qa`
+    - `POST /learning/question_answer`
+  - student question/assignment solver for Mathematics and Indian Social
+  - returns current answer, correct answer, verdict, feedback, references, detailed explanation, logical steps, mistakes, and practice questions
+  - deterministic math correctness layer for arithmetic, linear equations, and percentage questions (LLM cannot override computed numeric answer)
+  - accepts text and/or attachments:
+    - `chapter_text` and/or `chapter_file`
+    - `student_notes` and/or `student_notes_file`
+  - returns richer coaching output:
+    - `storytelling_summary`, `detailed_feedback`
+    - `study_plan`, `mastery_score`
+
+### Unified history
+- `GET /api/v1/documents/history`
+  - includes sentiment + relevance + learning runs in one chronological feed
+  - learning story and learning Q&A are both tracked in history
+
+### System
 - `GET /health`
+- OpenAPI: `/docs`, `/openapi.json`
+- Integration guide with curl examples: `API_DOCS.md`
 
-OpenAPI docs:
-- `/docs`
-- `/openapi.json`
+## 6) Environment Variables
 
----
+Use `backend/.env`:
+- `DATABASE_URL`
+- `MODEL_PATH`
+- `API_TITLE`
+- `JWT_SECRET_KEY`
+- `JWT_ALGORITHM`
+- `ACCESS_TOKEN_EXPIRE_MINUTES`
+- `CORS_ORIGINS`
+- `TESSERACT_CMD`
+- `SEEDED_USER_EMAIL`
+- `SEEDED_USER_PASSWORD`
+- `DEFAULT_USER_CREDITS` (default `25`)
+- `UNLIMITED_USER_EMAIL` (default `anilkumargolla444@gmail.com`)
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL` (default `gpt-4o-mini`)
+- `OPENAI_RELEVANCE_TEMPERATURE` (default `0.1`)
+- `OPENAI_LEARNING_TEMPERATURE` (default `0.2`)
 
-## 5) Database Schema
-
-Tables:
-- `users`
-  - email unique
-  - display_name
-  - password_hash
-  - timestamps
-- `documents`
-  - owner_id -> users
-  - title, content
-  - source metadata (`source_type`, `file_name`, `mime_type`)
-  - extracted_char_count
-- `sentiment_results`
-  - document_id unique FK
-  - dominant label + confidence
-  - `emotion_scores_json`
-  - `selected_metrics_json`
-  - `summary_text`
-  - `suggestions_json`
-  - model metadata
-
-Backward-compatible column migration is applied at startup in `backend/app/bootstrap.py`.
-
----
-
-## 6) Setup & Run
+## 7) Setup and Run
 
 ```bash
 cd /Users/anilkumar/Documents/Playground/doc-sentiment/backend
@@ -183,31 +230,51 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
+
+# emotion model data
 python scripts/generate_seed_dataset.py
+python scripts/fetch_public_dataset.py
 python scripts/train_small_model.py
+
+# learning domain model
+python scripts/train_learning_domain_model.py
+
+# run app
 uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 Open:
 - `http://127.0.0.1:8000/login`
 
----
+## 8) OCR Notes
 
-## 7) Seeded account
+Install Tesseract:
+```bash
+brew install tesseract
+```
 
-- Email: `anilkumargolla444@gmail.com`
-- Password: `Anil2020@b`
+If needed:
+```bash
+export TESSERACT_CMD=/opt/homebrew/bin/tesseract
+```
 
-Used for quick initial login. New accounts can be created from UI.
+Supported file formats:
+- `.txt`, `.pdf`, `.docx`, `.png`, `.jpg`, `.jpeg`, `.tiff`
 
----
+## 9) Database and Schema
 
-## 8) Database Access
+Tables:
+- `users` (includes `credits_remaining`, `is_unlimited`)
+- `documents`
+- `sentiment_results`
+- `analysis_history` (relevance + learning timeline)
 
-Current local DB:
-- `/Users/anilkumar/Documents/Playground/doc-sentiment/backend/sentiment.db`
+Credit policy:
+- `anilkumargolla444@gmail.com` -> unlimited credits
+- all other users -> `DEFAULT_USER_CREDITS` (default 25)
+- resume generation is available as a common feature (no per-request credit deduction)
 
-Inspect:
+Inspect local DB:
 ```bash
 sqlite3 /Users/anilkumar/Documents/Playground/doc-sentiment/backend/sentiment.db
 ```
@@ -216,19 +283,13 @@ Useful SQL:
 ```sql
 .tables
 select id,email,display_name,created_at from users;
+select id,email,is_unlimited,credits_remaining,created_at from users;
 select id,title,source_type,created_at from documents order by id desc limit 20;
 select document_id,label,confidence,model_name,model_version from sentiment_results order by id desc limit 20;
+select id,module_name,title,analysis_type,score,created_at from analysis_history order by id desc limit 20;
 ```
 
----
+## 10) Security Note
 
-## 9) Quality Notes and Next Accuracy Upgrade
-
-Current model is strong as a practical baseline for your listed emotions and supports targeted metric filtering.
-
-For best production accuracy on your domain:
-1. Collect real labeled datasets from your own documents.
-2. Add human-reviewed label guidelines per emotion.
-3. Fine-tune transformer multi-label model (DeBERTa/BERT) on real data.
-4. Calibrate per-label thresholds on held-out validation data.
-5. Add continuous feedback loop from user corrections.
+Do not store real API keys in `.env.example` or committed files.
+Keep secrets only in local `.env`.

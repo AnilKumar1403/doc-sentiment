@@ -1,0 +1,20 @@
+{
+  "subject": "mathematics",
+  "classes": {
+    "1": ["numbers up to 100", "basic addition", "basic subtraction", "shapes", "measurement basics", "time and calendar basics"],
+    "2": ["place value", "addition and subtraction with carry", "multiplication basics", "division basics", "money", "data handling basics"],
+    "3": ["4-digit numbers", "fractions introduction", "length, weight, capacity", "time operations", "patterns", "perimeter basics"],
+    "4": ["large numbers", "factors and multiples basics", "fractions and decimals intro", "angles", "area basics", "graphs basics"],
+    "5": ["operations on large numbers", "fractions and decimals", "percent basics", "average basics", "volume basics", "symmetry"],
+    "6": ["integers", "fractions and decimals operations", "ratio and proportion intro", "algebra basics", "mensuration basics", "data handling"],
+    "7": ["rational numbers", "simple equations", "lines and angles", "triangles", "comparing quantities", "probability intro"],
+    "8": ["linear equations in one variable", "understanding quadrilaterals", "practical geometry", "squares and square roots", "cubes and cube roots", "direct and inverse proportion"],
+    "9": ["number systems", "polynomials", "coordinate geometry", "linear equations in two variables", "euclid geometry", "surface area and volumes", "statistics"],
+    "10": ["real numbers", "pair of linear equations", "quadratic equations", "arithmetic progressions", "triangles and circles", "trigonometry basics", "probability"],
+    "11": ["sets and relations", "functions", "trigonometric functions", "complex numbers", "permutations and combinations", "binomial theorem", "straight lines and conic sections", "limits and derivatives", "statistics and probability"],
+    "12": ["relations and functions advanced", "inverse trigonometric functions", "matrices and determinants", "continuity and differentiability", "application of derivatives", "integrals and differential equations", "vector algebra", "three dimensional geometry", "linear programming", "probability advanced"]
+  },
+  "competitive_exam_topics": [
+    "quantitative aptitude", "number theory", "divisibility and remainders", "hcf and lcm", "percentages", "profit loss discount", "simple and compound interest", "ratio proportion and partnership", "time and work", "pipes and cisterns", "time speed distance", "trains boats streams", "averages and alligation", "mixture and allegation", "permutation and combination", "probability and counting", "logarithms", "surds and indices", "progressions", "quadratic and higher equations", "coordinate geometry", "geometry and mensuration", "trigonometry advanced", "functions and graphs", "calculus for entrance exams", "data interpretation", "logical mathematical reasoning"
+  ]
+}

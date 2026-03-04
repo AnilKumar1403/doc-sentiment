@@ -1,0 +1,20 @@
+{
+  "subject": "indian social",
+  "classes": {
+    "1": ["family and neighbourhood", "our school", "basic map awareness", "community helpers", "festivals in india", "good habits and civic manners"],
+    "2": ["food and clothing", "houses and transport", "local occupations", "seasons and environment", "safety rules", "respect and cooperation"],
+    "3": ["village and city life", "states and symbols of india", "local governance basics", "public services", "water and conservation", "diversity in culture"],
+    "4": ["indian landforms", "natural resources", "historical monuments", "freedom movement intro", "constitution values intro", "disaster awareness"],
+    "5": ["physical features of india", "climate and agriculture", "ancient civilizations intro", "transport and communication", "democracy basics", "rights and duties"],
+    "6": ["early human and civilization", "vedic age", "janapadas and mahajanapadas", "earth and globe", "government and local self governance", "markets and livelihoods"],
+    "7": ["medieval india", "mughal empire", "regional kingdoms", "inside our earth", "air and water", "state government and media"],
+    "8": ["modern india and colonialism", "tribal and peasant movements", "indian constitution overview", "resources and industries", "human resources", "law and social justice"],
+    "9": ["french revolution", "nazism and world history context", "india size and location", "drainage and climate", "electoral politics", "poverty and food security"],
+    "10": ["nationalism in india", "making of a global world", "print culture", "resources and development", "federalism and political parties", "money and credit", "globalisation"],
+    "11": ["themes in world history", "indian constitution at work", "physical geography", "indian economy basics", "population and migration", "rights and citizenship"],
+    "12": ["modern indian history", "india after independence", "world politics", "contemporary indian politics", "human geography and planning", "macroeconomics", "development and environment"]
+  },
+  "advanced_topics": [
+    "indian freedom struggle chronology", "constitution and constitutional morality", "fundamental rights and directive principles", "parliament judiciary executive", "federal structure and center state relations", "social justice and affirmative action", "economic planning in india", "agriculture and food systems", "industrialization and infrastructure", "sustainable development goals in indian context", "india and international relations", "public policy and governance", "history source analysis", "civics case based reasoning"
+  ]
+}

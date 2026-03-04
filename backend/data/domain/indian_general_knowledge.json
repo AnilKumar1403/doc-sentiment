@@ -1,0 +1,219 @@
+{
+  "items": [
+    {
+      "topic": "Constitution Adoption",
+      "fact": "The Constitution of India was adopted on 26 November 1949 and came into effect on 26 January 1950.",
+      "keywords": ["constitution", "adopted", "26 november", "26 january", "republic day", "india"]
+    },
+    {
+      "topic": "Fundamental Rights",
+      "fact": "Fundamental Rights are guaranteed in Part III of the Constitution of India.",
+      "keywords": ["fundamental rights", "part iii", "constitution", "rights"]
+    },
+    {
+      "topic": "Directive Principles",
+      "fact": "Directive Principles of State Policy are listed in Part IV of the Constitution.",
+      "keywords": ["directive principles", "part iv", "state policy", "constitution"]
+    },
+    {
+      "topic": "Parliament",
+      "fact": "The Parliament of India consists of the President, Lok Sabha, and Rajya Sabha.",
+      "keywords": ["parliament", "lok sabha", "rajya sabha", "president", "legislature"]
+    },
+    {
+      "topic": "States and Union Territories",
+      "fact": "India has 28 states and 8 union territories.",
+      "keywords": ["states", "union territories", "india map", "administrative divisions"]
+    },
+    {
+      "topic": "Largest State by Area",
+      "fact": "Rajasthan is the largest state in India by area.",
+      "keywords": ["largest state", "area", "rajasthan"]
+    },
+    {
+      "topic": "Most Populous State",
+      "fact": "Uttar Pradesh is the most populous state in India.",
+      "keywords": ["most populous", "state", "uttar pradesh", "population"]
+    },
+    {
+      "topic": "National River",
+      "fact": "The Ganga is the national river of India.",
+      "keywords": ["national river", "ganga", "river"]
+    },
+    {
+      "topic": "National Animal",
+      "fact": "The Bengal tiger is the national animal of India.",
+      "keywords": ["national animal", "tiger", "bengal tiger"]
+    },
+    {
+      "topic": "National Bird",
+      "fact": "The Indian peacock is the national bird of India.",
+      "keywords": ["national bird", "peacock", "indian peafowl"]
+    },
+    {
+      "topic": "National Flower",
+      "fact": "The lotus is the national flower of India.",
+      "keywords": ["national flower", "lotus"]
+    },
+    {
+      "topic": "National Anthem",
+      "fact": "Jana Gana Mana is the national anthem of India.",
+      "keywords": ["national anthem", "jana gana mana"]
+    },
+    {
+      "topic": "National Song",
+      "fact": "Vande Mataram is the national song of India.",
+      "keywords": ["national song", "vande mataram"]
+    },
+    {
+      "topic": "Indian Independence",
+      "fact": "India gained independence on 15 August 1947.",
+      "keywords": ["independence", "15 august 1947", "freedom movement"]
+    },
+    {
+      "topic": "First Prime Minister",
+      "fact": "Jawaharlal Nehru was the first Prime Minister of independent India.",
+      "keywords": ["first prime minister", "jawaharlal nehru", "independence"]
+    },
+    {
+      "topic": "First President",
+      "fact": "Dr. Rajendra Prasad was the first President of India.",
+      "keywords": ["first president", "rajendra prasad"]
+    },
+    {
+      "topic": "Mahatma Gandhi",
+      "fact": "Mahatma Gandhi is known for leading India's freedom struggle through non-violence and satyagraha.",
+      "keywords": ["gandhi", "non violence", "satyagraha", "freedom struggle"]
+    },
+    {
+      "topic": "Dandi March",
+      "fact": "The Dandi March (Salt March) was led by Mahatma Gandhi in 1930.",
+      "keywords": ["dandi march", "salt march", "1930", "gandhi"]
+    },
+    {
+      "topic": "Quit India Movement",
+      "fact": "The Quit India Movement was launched in 1942.",
+      "keywords": ["quit india", "1942", "freedom movement"]
+    },
+    {
+      "topic": "Jallianwala Bagh",
+      "fact": "The Jallianwala Bagh massacre took place in Amritsar in 1919.",
+      "keywords": ["jallianwala bagh", "1919", "amritsar"]
+    },
+    {
+      "topic": "Constituent Assembly",
+      "fact": "Dr. B.R. Ambedkar chaired the Drafting Committee of the Constituent Assembly.",
+      "keywords": ["constituent assembly", "ambedkar", "drafting committee"]
+    },
+    {
+      "topic": "Judiciary",
+      "fact": "The Supreme Court of India is the highest judicial authority in the country.",
+      "keywords": ["supreme court", "judiciary", "highest court"]
+    },
+    {
+      "topic": "Election Commission",
+      "fact": "The Election Commission of India conducts free and fair elections.",
+      "keywords": ["election commission", "elections", "democracy"]
+    },
+    {
+      "topic": "Panchayati Raj",
+      "fact": "Panchayati Raj provides local self-governance in rural India through a three-tier system.",
+      "keywords": ["panchayati raj", "local government", "rural governance"]
+    },
+    {
+      "topic": "Green Revolution",
+      "fact": "The Green Revolution increased food grain production in India using high-yield seeds and irrigation.",
+      "keywords": ["green revolution", "agriculture", "food grain", "hyv seeds"]
+    },
+    {
+      "topic": "White Revolution",
+      "fact": "The White Revolution transformed India into one of the largest milk producers.",
+      "keywords": ["white revolution", "milk production", "operation flood"]
+    },
+    {
+      "topic": "ISRO",
+      "fact": "ISRO is India's national space agency and is known for missions like Chandrayaan and Mangalyaan.",
+      "keywords": ["isro", "chandrayaan", "mangalyaan", "space"]
+    },
+    {
+      "topic": "Chandrayaan-3",
+      "fact": "Chandrayaan-3 achieved a successful soft landing near the Moon's south polar region in 2023.",
+      "keywords": ["chandrayaan 3", "moon", "2023", "south pole"]
+    },
+    {
+      "topic": "Indian Monsoon",
+      "fact": "The southwest monsoon is critical for agriculture and water resources in India.",
+      "keywords": ["monsoon", "southwest monsoon", "rainfall", "agriculture"]
+    },
+    {
+      "topic": "Himalayas",
+      "fact": "The Himalayas influence India's climate and act as a natural barrier in the north.",
+      "keywords": ["himalayas", "climate", "northern mountains", "barrier"]
+    },
+    {
+      "topic": "Indian Ocean",
+      "fact": "India is bounded by the Indian Ocean in the south, Arabian Sea in the west, and Bay of Bengal in the east.",
+      "keywords": ["indian ocean", "arabian sea", "bay of bengal", "coastline"]
+    },
+    {
+      "topic": "Major Soil Types",
+      "fact": "India has alluvial, black, red, laterite, mountain, and desert soil types.",
+      "keywords": ["soil", "alluvial", "black soil", "red soil", "laterite"]
+    },
+    {
+      "topic": "Major Crops",
+      "fact": "Rice and wheat are major food crops in India; cotton and jute are important cash crops.",
+      "keywords": ["crops", "rice", "wheat", "cotton", "jute", "agriculture"]
+    },
+    {
+      "topic": "River Valleys Civilization",
+      "fact": "The Indus Valley Civilization is one of the earliest urban civilizations in the Indian subcontinent.",
+      "keywords": ["indus valley", "harappan", "civilization", "ancient india"]
+    },
+    {
+      "topic": "Mauryan Empire",
+      "fact": "The Mauryan Empire reached great heights under Emperor Ashoka.",
+      "keywords": ["mauryan", "ashoka", "ancient empire"]
+    },
+    {
+      "topic": "Gupta Period",
+      "fact": "The Gupta period is often called the Golden Age of ancient India.",
+      "keywords": ["gupta", "golden age", "ancient india"]
+    },
+    {
+      "topic": "Delhi Sultanate",
+      "fact": "The Delhi Sultanate ruled large parts of India before the Mughal period.",
+      "keywords": ["delhi sultanate", "medieval india"]
+    },
+    {
+      "topic": "Mughal Empire",
+      "fact": "The Mughal Empire significantly influenced architecture, administration, and culture in India.",
+      "keywords": ["mughal", "architecture", "administration", "culture"]
+    },
+    {
+      "topic": "Bhakti and Sufi Movements",
+      "fact": "Bhakti and Sufi movements emphasized devotion, equality, and spiritual reform.",
+      "keywords": ["bhakti", "sufi", "devotion", "social reform"]
+    },
+    {
+      "topic": "Indian National Congress",
+      "fact": "The Indian National Congress was founded in 1885 and played a major role in freedom movement.",
+      "keywords": ["indian national congress", "1885", "freedom movement"]
+    },
+    {
+      "topic": "RBI",
+      "fact": "The Reserve Bank of India (RBI) is India's central bank.",
+      "keywords": ["rbi", "reserve bank", "central bank", "economy"]
+    },
+    {
+      "topic": "GST",
+      "fact": "Goods and Services Tax (GST) is a unified indirect tax system in India.",
+      "keywords": ["gst", "goods and services tax", "indirect tax"]
+    },
+    {
+      "topic": "Digital India",
+      "fact": "Digital India is a flagship program to transform India into a digitally empowered society and knowledge economy.",
+      "keywords": ["digital india", "technology", "governance", "knowledge economy"]
+    }
+  ]
+}

@@ -16,12 +16,18 @@ def seed_default_user(db: Session) -> None:
     settings = get_settings()
     existing = db.query(User).filter(User.email == settings.seeded_user_email).first()
     if existing:
+        if existing.email.lower() == settings.unlimited_user_email.lower() and not existing.is_unlimited:
+            existing.is_unlimited = True
+            existing.credits_remaining = max(existing.credits_remaining or 0, settings.default_user_credits)
+            db.commit()
         return
 
     user = User(
         email=settings.seeded_user_email,
         display_name="Anil Kumar",
         password_hash=hash_password(settings.seeded_user_password),
+        credits_remaining=settings.default_user_credits,
+        is_unlimited=settings.seeded_user_email.lower() == settings.unlimited_user_email.lower(),
     )
     db.add(user)
     db.commit()
@@ -29,6 +35,12 @@ def seed_default_user(db: Session) -> None:
 
 def _ensure_backward_compatible_columns() -> None:
     inspector = inspect(engine)
+    user_columns = {col["name"] for col in inspector.get_columns("users")}
+    if "credits_remaining" not in user_columns:
+        _safe_execute("ALTER TABLE users ADD COLUMN credits_remaining INTEGER DEFAULT 25 NOT NULL")
+    if "is_unlimited" not in user_columns:
+        _safe_execute("ALTER TABLE users ADD COLUMN is_unlimited BOOLEAN DEFAULT FALSE NOT NULL")
+
     columns = {col["name"] for col in inspector.get_columns("documents")}
 
     if "owner_id" not in columns:
