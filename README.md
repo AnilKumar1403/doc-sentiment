@@ -1,130 +1,154 @@
-# Document Sentiment Analysis (End-to-End Starter)
+# Document Sentiment Intelligence Platform
 
-This project gives you a full learning path and runnable starter for:
+Production-style starter for document sentiment analysis with:
 
-- Backend API (`FastAPI`)
-- Database (`PostgreSQL`)
-- Database schema + persistence
-- Small AI model you can train yourself (`TF-IDF + Logistic Regression`)
-- Simple UI (HTML/CSS/JS)
+- Account system (register/login/logout/profile)
+- Seeded admin login
+- Document upload + OCR/text extraction
+- Sentiment model inference and persistence
+- Dashboard, Analyze, History UI
+- FastAPI backend + SQLAlchemy + PostgreSQL/SQLite
 
-## 1) Project Structure
+## Features
 
-```
-doc-sentiment/
-  backend/
-    app/
-      config.py
-      database.py
-      models.py
-      schemas.py
-      ml.py
-      main.py
-    scripts/
-      generate_seed_dataset.py
-      train_small_model.py
-    data/
-      sentiment_seed.csv
-    models/
-      sentiment_model.joblib   # generated after training
-    requirements.txt
-    .env.example
-  database/
-    schema.sql
-  frontend/
-    index.html
-    styles.css
-    app.js
-  docker-compose.yml
-```
+- Authenticated multi-user data ownership
+- File ingestion support: `.txt`, `.pdf`, `.docx`, `.png`, `.jpg`, `.jpeg`, `.tiff`
+- OCR for image files and scanned PDFs
+- Model inference: `TF-IDF + Logistic Regression`
+- User dashboard with key stats
+- Full analysis history per user
 
-## 2) Prerequisites
+## Seeded Account
 
-- Python `3.10+`
-- Docker + Docker Compose
+Seeded automatically at backend startup:
 
-## 3) Start PostgreSQL
+- Username: `anilkumargolla444@gmail.com`
+- Password: `Anil2020@b`
 
-From `doc-sentiment/`:
+For production, change seeded credentials and rotate secrets.
 
-```bash
-docker compose up -d
-```
+## Architecture
 
-This starts:
-- `postgres` on `localhost:5432`
+- Backend: `backend/app/main.py`
+- Security/JWT/password hashing: `backend/app/security.py`
+- OCR + file extraction: `backend/app/document_extractor.py`
+- Model inference: `backend/app/ml.py`
+- DB bootstrap + seed: `backend/app/bootstrap.py`
+- Frontend: `frontend/index.html`, `frontend/styles.css`, `frontend/app.js`
+- SQL schema: `database/schema.sql`
 
-## 4) Backend Setup
+## Setup (Local SQLite mode)
+
+1. Create and activate virtual env
 
 ```bash
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
 ```
 
-Create schema:
+2. Configure env
 
 ```bash
-psql "postgresql://sentiment_user:sentiment_pass@localhost:5432/sentiment_db" -f ../database/schema.sql
+cp .env.example .env
+# For local no-docker run:
+# DATABASE_URL=sqlite:///./sentiment.db
 ```
 
-## 5) Train Your Small Model (From Scratch)
-
-Generate seed dataset + train model:
+3. Train sentiment model
 
 ```bash
 python scripts/generate_seed_dataset.py
 python scripts/train_small_model.py
 ```
 
-This saves model artifact to:
-- `backend/models/sentiment_model.joblib`
-
-## 6) Run API + UI
-
-From `backend/`:
+4. Start API/UI
 
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-Open:
+5. Open
+
 - `http://localhost:8000`
 
-## 7) Key API Endpoints
+## Setup (PostgreSQL via Docker)
 
-- `GET /health`
-- `POST /api/v1/documents/analyze`
-- `GET /api/v1/documents`
+From project root:
+
+```bash
+docker compose up -d
+```
+
+Then in `backend/`:
+
+```bash
+cp .env.example .env
+source .venv/bin/activate
+psql "postgresql://sentiment_user:sentiment_pass@localhost:5432/sentiment_db" -f ../database/schema.sql
+python scripts/generate_seed_dataset.py
+python scripts/train_small_model.py
+uvicorn app.main:app --reload --port 8000
+```
+
+## OCR Prerequisite
+
+`pytesseract` requires the Tesseract binary on host machine.
+
+macOS:
+
+```bash
+brew install tesseract
+```
+
+If Tesseract is installed but not on PATH, set:
+
+```bash
+export TESSERACT_CMD=/opt/homebrew/bin/tesseract
+```
+
+Without Tesseract, image/scanned-PDF OCR endpoints return a clear error message.
+
+## API Overview
+
+### Auth
+
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/auth/me`
+
+### Documents
+
+- `POST /api/v1/documents/analyze-text`
+- `POST /api/v1/documents/analyze-file`
+- `GET /api/v1/documents/history`
 - `GET /api/v1/documents/{document_id}`
 
-## 8) Database Schema
+### Dashboard
 
-See `database/schema.sql`.
+- `GET /api/v1/dashboard/summary`
 
-Core tables:
-- `documents`: source text and metadata
-- `sentiment_results`: prediction label + confidence + model metadata
+### System
 
-## 9) Next Learning Steps
+- `GET /health`
 
-1. Replace seed dataset with a real one (IMDB, Yelp, Amazon reviews).
-2. Add neutral class and rebalance classes.
-3. Evaluate with precision/recall/F1 + confusion matrix.
-4. Try transformer baseline (`distilbert-base-uncased-finetuned-sst-2-english`).
-5. Add auth and role-based access for production.
+## Security Notes
 
-## 10) AI Models You Can Try
+- Passwords are hashed with bcrypt (`passlib`)
+- Sessions use signed JWT in HttpOnly cookie
+- Document access is scoped to authenticated owner
 
-### Small + Fast (good for learning)
-- `TF-IDF + Logistic Regression` (already implemented)
-- `TF-IDF + Linear SVM`
-- `FastText` supervised classifier
+## Quality and Extensibility
 
-### Better quality (heavier)
-- `distilbert-base-uncased-finetuned-sst-2-english`
-- `cardiffnlp/twitter-roberta-base-sentiment-latest`
+- Strongly typed request/response schemas
+- Separation of concerns across auth, extraction, model, persistence
+- Backward-compatible table bootstrap for existing local DBs
 
-Start with the small model in this repo, then compare to a transformer.
+## Next Upgrades
+
+1. Add Alembic migrations for strict schema evolution.
+2. Add async task queue for heavy OCR jobs.
+3. Add model registry + A/B testing across multiple models.
+4. Add automated tests for auth, OCR extraction, and API contracts.

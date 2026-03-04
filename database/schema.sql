@@ -1,7 +1,21 @@
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    display_name VARCHAR(120) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS documents (
     id SERIAL PRIMARY KEY,
+    owner_id INT REFERENCES users(id) ON DELETE SET NULL,
     title VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
+    source_type VARCHAR(32) NOT NULL DEFAULT 'text',
+    file_name VARCHAR(255),
+    mime_type VARCHAR(128),
+    extracted_char_count INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -15,5 +29,6 @@ CREATE TABLE IF NOT EXISTS sentiment_results (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_documents_created_at ON documents (created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_sentiment_results_label ON sentiment_results (label);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_documents_owner_created ON documents(owner_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sentiment_results_label ON sentiment_results(label);

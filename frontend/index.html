@@ -3,40 +3,139 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document Sentiment Analyzer</title>
+    <title>Sentiment Intelligence Platform</title>
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
-    <main class="container">
-      <section class="panel">
-        <h1>Document Sentiment Analyzer</h1>
-        <p class="subtitle">Train a small model and test sentiment on your documents.</p>
+    <div class="background-orb orb-a"></div>
+    <div class="background-orb orb-b"></div>
 
-        <form id="analyze-form">
-          <label for="title">Title</label>
-          <input id="title" name="title" required maxlength="255" placeholder="Document title" />
+    <main id="auth-screen" class="auth-shell">
+      <section class="auth-card">
+        <h1>Sentiment Intelligence Platform</h1>
+        <p class="muted">Login or create an account to analyze documents using OCR + AI.</p>
 
-          <label for="content">Content</label>
-          <textarea
-            id="content"
-            name="content"
-            rows="7"
-            required
-            placeholder="Paste document text here"
-          ></textarea>
+        <div class="tabs">
+          <button id="tab-login" class="tab active" type="button">Login</button>
+          <button id="tab-register" class="tab" type="button">Create Account</button>
+        </div>
 
-          <button type="submit">Analyze Sentiment</button>
+        <form id="login-form" class="form-block">
+          <label for="login-email">Email</label>
+          <input id="login-email" type="email" required value="anilkumargolla444@gmail.com" />
+
+          <label for="login-password">Password</label>
+          <input id="login-password" type="password" required value="Anil2020@b" />
+
+          <button type="submit">Login</button>
         </form>
 
-        <div id="result" class="result hidden"></div>
-      </section>
+        <form id="register-form" class="form-block hidden">
+          <label for="register-name">Display Name</label>
+          <input id="register-name" type="text" required minlength="2" maxlength="120" />
 
-      <section class="panel">
-        <div class="panel-head">
-          <h2>Recent Documents</h2>
-          <button id="refresh-btn" type="button">Refresh</button>
-        </div>
-        <div id="documents" class="documents"></div>
+          <label for="register-email">Email</label>
+          <input id="register-email" type="email" required />
+
+          <label for="register-password">Password</label>
+          <input id="register-password" type="password" required minlength="8" />
+
+          <button type="submit">Create Account</button>
+        </form>
+
+        <div id="auth-message" class="message hidden"></div>
+      </section>
+    </main>
+
+    <main id="app-shell" class="app-shell hidden">
+      <aside class="sidebar">
+        <h2>Sentiment AI</h2>
+        <p id="sidebar-user" class="sidebar-user"></p>
+        <nav>
+          <button class="menu-btn active" data-view="dashboard" type="button">Dashboard</button>
+          <button class="menu-btn" data-view="analyze" type="button">Analyze</button>
+          <button class="menu-btn" data-view="history" type="button">History</button>
+          <button class="menu-btn" data-view="profile" type="button">Profile</button>
+          <button id="logout-btn" class="menu-btn danger" type="button">Logout</button>
+        </nav>
+      </aside>
+
+      <section class="content">
+        <header class="content-header">
+          <h1 id="view-title">Dashboard</h1>
+          <p id="view-subtitle" class="muted">Your document sentiment overview.</p>
+        </header>
+
+        <section id="view-dashboard" class="view">
+          <div class="stats-grid">
+            <article class="stat-card">
+              <h3>Total Documents</h3>
+              <p id="stat-total" class="stat-value">0</p>
+            </article>
+            <article class="stat-card">
+              <h3>Positive</h3>
+              <p id="stat-positive" class="stat-value">0</p>
+            </article>
+            <article class="stat-card">
+              <h3>Negative</h3>
+              <p id="stat-negative" class="stat-value">0</p>
+            </article>
+            <article class="stat-card">
+              <h3>Last Analysis</h3>
+              <p id="stat-last" class="stat-value small">-</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="view-analyze" class="view hidden">
+          <div class="panel">
+            <h2>Analyze Direct Text</h2>
+            <form id="text-form">
+              <label for="text-title">Title</label>
+              <input id="text-title" maxlength="255" required />
+
+              <label for="text-content">Content</label>
+              <textarea id="text-content" rows="8" required></textarea>
+
+              <button type="submit">Analyze Text</button>
+            </form>
+          </div>
+
+          <div class="panel">
+            <h2>Analyze Uploaded Document</h2>
+            <form id="file-form">
+              <label for="file-title">Title</label>
+              <input id="file-title" maxlength="255" required />
+
+              <label for="file-input">Document</label>
+              <input id="file-input" type="file" required />
+
+              <p class="muted tiny">Supported: .txt, .pdf, .docx, .png, .jpg, .jpeg, .tiff (max 10MB)</p>
+              <button type="submit">Analyze File + OCR</button>
+            </form>
+          </div>
+
+          <div id="analyze-result" class="message hidden"></div>
+        </section>
+
+        <section id="view-history" class="view hidden">
+          <div class="panel">
+            <div class="row-head">
+              <h2>Analysis History</h2>
+              <button id="history-refresh" type="button">Refresh</button>
+            </div>
+            <div id="history-list" class="history-list"></div>
+          </div>
+        </section>
+
+        <section id="view-profile" class="view hidden">
+          <div class="panel">
+            <h2>Profile</h2>
+            <p><strong>Name:</strong> <span id="profile-name">-</span></p>
+            <p><strong>Email:</strong> <span id="profile-email">-</span></p>
+            <p><strong>Joined:</strong> <span id="profile-joined">-</span></p>
+          </div>
+        </section>
       </section>
     </main>
 

@@ -8,3 +8,12 @@ scikit-learn==1.7.1
 pandas==2.3.1
 joblib==1.5.1
 python-multipart==0.0.20
+passlib[bcrypt]==1.7.4
+bcrypt==3.2.2
+python-jose[cryptography]==3.3.0
+email-validator==2.2.0
+Pillow==11.3.0
+pytesseract==0.3.13
+pypdf==5.9.0
+python-docx==1.2.0
+PyMuPDF==1.26.3
