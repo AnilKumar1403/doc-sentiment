@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document Sentiment Analyzer</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <section class="panel">
+        <h1>Document Sentiment Analyzer</h1>
+        <p class="subtitle">Train a small model and test sentiment on your documents.</p>
+
+        <form id="analyze-form">
+          <label for="title">Title</label>
+          <input id="title" name="title" required maxlength="255" placeholder="Document title" />
+
+          <label for="content">Content</label>
+          <textarea
+            id="content"
+            name="content"
+            rows="7"
+            required
+            placeholder="Paste document text here"
+          ></textarea>
+
+          <button type="submit">Analyze Sentiment</button>
+        </form>
+
+        <div id="result" class="result hidden"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Recent Documents</h2>
+          <button id="refresh-btn" type="button">Refresh</button>
+        </div>
+        <div id="documents" class="documents"></div>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
