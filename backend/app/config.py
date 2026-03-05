@@ -42,6 +42,7 @@ class Settings(BaseModel):
     jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
     access_token_expire_minutes: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "120"))
     cors_origins: list[str] = _load_cors_origins()
+    cors_allow_origin_regex: str = os.getenv("CORS_ALLOW_ORIGIN_REGEX", ".*")
     tesseract_cmd: str = os.getenv("TESSERACT_CMD", "/opt/homebrew/bin/tesseract")
     seeded_user_email: str = os.getenv("SEEDED_USER_EMAIL", "anilkumargolla444@gmail.com")
     seeded_user_password: str = os.getenv("SEEDED_USER_PASSWORD", "Anil2020@b")
