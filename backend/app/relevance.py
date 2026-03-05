@@ -418,6 +418,229 @@ def _line_level_modification_plan(
     return plan
 
 
+def _section_presence(text: str) -> dict[str, bool]:
+    lower = (text or "").lower()
+    return {
+        "summary": bool(re.search(r"\b(summary|objective|profile)\b", lower)),
+        "skills": bool(re.search(r"\b(skills|technical skills|core skills)\b", lower)),
+        "experience": bool(re.search(r"\b(experience|employment|work history)\b", lower)),
+        "projects": bool(re.search(r"\b(projects|portfolio)\b", lower)),
+        "education": bool(re.search(r"\b(education|academic)\b", lower)),
+        "certifications": bool(re.search(r"\b(certification|certifications)\b", lower)),
+    }
+
+
+def _recommended_section_for_keyword(keyword: str) -> str:
+    term = (keyword or "").lower()
+    if re.search(r"\b(aws|azure|gcp|python|java|sql|spark|tableau|power bi|excel|react|node)\b", term):
+        return "CORE SKILLS + EXPERIENCE"
+    if re.search(r"\b(api|architecture|microservice|cloud|pipeline|automation|model|analytics)\b", term):
+        return "EXPERIENCE + PROJECTS"
+    if re.search(r"\b(lead|stakeholder|ownership|mentor|cross[- ]functional|communication)\b", term):
+        return "PROFESSIONAL SUMMARY + EXPERIENCE"
+    if re.search(r"\b(cert|scrum|pmp|itil)\b", term):
+        return "CERTIFICATIONS + SUMMARY"
+    return "EXPERIENCE BULLETS"
+
+
+def _keyword_priority(index: int, present: bool) -> str:
+    if index < 8:
+        return "high"
+    if index < 16:
+        return "medium" if present else "high"
+    return "medium"
+
+
+def _build_jd_keyword_coverage(
+    *,
+    jd_terms: list[str],
+    resume_terms: list[str],
+) -> list[dict]:
+    resume_set = set(resume_terms)
+    coverage: list[dict] = []
+    for idx, keyword in enumerate(jd_terms[:24]):
+        present = keyword in resume_set
+        coverage.append(
+            {
+                "keyword": keyword,
+                "present_in_cv": present,
+                "recommended_section": _recommended_section_for_keyword(keyword),
+                "action": (
+                    f"Keep '{keyword}' and support it with one measurable proof point."
+                    if present
+                    else f"Add '{keyword}' in the recommended section with context + measurable impact."
+                ),
+                "priority": _keyword_priority(idx, present),
+            }
+        )
+    return coverage
+
+
+def _build_strategic_action_plan(
+    *,
+    role: str | None,
+    company: str | None,
+    jd_terms: list[str],
+    gaps: list[str],
+    overlap_keywords: list[str],
+    analysis_metrics: dict,
+    section_presence: dict[str, bool],
+) -> list[dict]:
+    role_text = role or "target role"
+    company_text = company or "target company"
+    top_gaps = gaps[:12]
+    top_overlap = overlap_keywords[:8]
+    evidence_score = float(analysis_metrics.get("evidence_score", 0.0))
+    keyword_coverage = float(analysis_metrics.get("keyword_coverage", 0.0))
+
+    actions: list[dict] = []
+
+    actions.append(
+        {
+            "area": "Role Positioning",
+            "where_to_add": "Professional Summary (first 3-4 lines)",
+            "what_to_add": (
+                f"Rewrite the summary for {role_text} at {company_text}, and include 3 JD capabilities: "
+                + ", ".join((top_overlap + top_gaps)[:3] or jd_terms[:3] or ["role fit", "delivery", "impact"])
+                + "."
+            ),
+            "why_it_matters": "Recruiters decide relevance in the first scan. The summary sets the fit narrative.",
+            "expected_impact": "Improves first-pass shortlist rate and boosts semantic role alignment.",
+            "estimated_score_lift": 4.5,
+            "sample_line": (
+                f"Results-focused professional targeting {role_text}, delivering measurable outcomes in "
+                + ", ".join((top_overlap + top_gaps)[:3] or ["execution", "analysis", "stakeholder delivery"])
+                + "."
+            ),
+            "priority": "high",
+        }
+    )
+
+    if not section_presence.get("skills", False):
+        actions.append(
+            {
+                "area": "Missing Skills Section",
+                "where_to_add": "Create a CORE SKILLS section below summary",
+                "what_to_add": "Add a JD-matched skills matrix with grouped categories (tools, methods, business capabilities).",
+                "why_it_matters": "ATS parsers and recruiters rely on a clear skills block for fast filtering.",
+                "expected_impact": "Raises keyword extraction coverage and structured readability.",
+                "estimated_score_lift": 5.0,
+                "sample_line": "CORE SKILLS: Python | SQL | Data Analysis | Stakeholder Management | Process Improvement",
+                "priority": "high",
+            }
+        )
+
+    if top_gaps:
+        actions.append(
+            {
+                "area": "ATS Keyword Gap Closure",
+                "where_to_add": "Skills + Top bullets in Experience",
+                "what_to_add": "Integrate missing JD terms naturally: " + ", ".join(top_gaps[:8]) + ".",
+                "why_it_matters": "Missing exact and semantic JD terms reduce ATS recall and recruiter confidence.",
+                "expected_impact": "Substantial increase in JD keyword coverage and overall match confidence.",
+                "estimated_score_lift": 7.5 if keyword_coverage < 55 else 5.5,
+                "sample_line": (
+                    f"Led {top_gaps[0]} initiatives with cross-functional teams, delivering measurable business outcomes."
+                    if top_gaps
+                    else None
+                ),
+                "priority": "high",
+            }
+        )
+
+    actions.append(
+        {
+            "area": "Evidence Strengthening",
+            "where_to_add": "Top 2 bullets under each recent role",
+            "what_to_add": "Convert task-based bullets into outcome bullets: action + metric + business impact.",
+            "why_it_matters": "Recruiters trust evidence-backed statements more than responsibility lists.",
+            "expected_impact": "Improves credibility, interview conversion, and hiring-manager confidence.",
+            "estimated_score_lift": 8.0 if evidence_score < 45 else 4.0,
+            "sample_line": "Improved process cycle time by 28% through workflow redesign and automation.",
+            "priority": "high",
+        }
+    )
+
+    actions.append(
+        {
+            "area": "Experience Mapping to JD",
+            "where_to_add": "Experience bullets aligned to job requirements",
+            "what_to_add": (
+                "Map each major JD requirement to one explicit achievement bullet. Cover at least 6 requirements."
+            ),
+            "why_it_matters": "Direct requirement-to-proof mapping reduces ambiguity in fit evaluation.",
+            "expected_impact": "Raises relevance score consistency across ATS and human reviews.",
+            "estimated_score_lift": 6.0,
+            "sample_line": (
+                f"Delivered {top_overlap[0]} program aligned to business goals, improving KPI performance by 18%."
+                if top_overlap
+                else "Delivered role-critical initiative with measurable KPI uplift."
+            ),
+            "priority": "high",
+        }
+    )
+
+    if not section_presence.get("projects", False):
+        actions.append(
+            {
+                "area": "Project Proof Expansion",
+                "where_to_add": "Add PROJECTS section",
+                "what_to_add": "Add 2 role-relevant projects with objective, stack/method, execution steps, and results.",
+                "why_it_matters": "Projects help bridge missing direct experience and demonstrate practical capability.",
+                "expected_impact": "Improves role-specific relevance depth and strengthens candidate story.",
+                "estimated_score_lift": 4.5,
+                "sample_line": "Built an end-to-end analytics project that reduced reporting turnaround by 40%.",
+                "priority": "medium",
+            }
+        )
+
+    actions.append(
+        {
+            "area": "Leadership and Collaboration Signals",
+            "where_to_add": "Experience bullets + summary",
+            "what_to_add": "Show ownership, stakeholder management, and decision influence in at least 3 bullets.",
+            "why_it_matters": "Most JDs evaluate collaboration and ownership alongside technical skills.",
+            "expected_impact": "Improves seniority perception and cross-functional fit.",
+            "estimated_score_lift": 3.0,
+            "sample_line": "Partnered with product and operations leaders to prioritize roadmap and deliver critical milestones.",
+            "priority": "medium",
+        }
+    )
+
+    actions.append(
+        {
+            "area": "Application-Specific Tailoring",
+            "where_to_add": "Before each submission (final pass checklist)",
+            "what_to_add": "Adjust headline, summary, top 6 skills, and first 5 bullets to mirror exact JD priorities.",
+            "why_it_matters": "Generic resumes underperform against role-specific evaluation criteria.",
+            "expected_impact": "Consistent improvement in application response rate.",
+            "estimated_score_lift": 3.5,
+            "sample_line": f"Tailored for {role_text}: focus on delivery ownership, measurable impact, and domain alignment.",
+            "priority": "medium",
+        }
+    )
+
+    return actions[:12]
+
+
+def _estimate_post_update_score(
+    *,
+    current_score: float,
+    action_plan: list[dict],
+    target_score: float,
+) -> float:
+    cumulative_gain = 0.0
+    for action in action_plan:
+        try:
+            cumulative_gain += float(action.get("estimated_score_lift", 0.0))
+        except Exception:
+            continue
+    estimated = min(96.0, current_score + cumulative_gain)
+    if current_score < target_score and estimated < target_score:
+        estimated = min(96.0, current_score + (target_score - current_score) + 3.0)
+    return round(estimated, 2)
+
+
 def build_revised_resume_package(
     *,
     resume_text: str,
@@ -441,6 +664,28 @@ def build_revised_resume_package(
     ats_keywords_added = [term for term in jd_terms if term not in resume_set][:14]
     overlap_keywords = [term for term in jd_terms if term in resume_set][:12]
     evidence_lines = _extract_strong_evidence_lines(resume_text, limit=6)
+    section_presence = _section_presence(resume_text)
+    target_relevance_score = 75.0
+
+    keyword_coverage_plan = _build_jd_keyword_coverage(
+        jd_terms=jd_terms,
+        resume_terms=resume_terms,
+    )
+    strategic_action_plan = _build_strategic_action_plan(
+        role=role,
+        company=company,
+        jd_terms=jd_terms,
+        gaps=analysis.get("gaps", []),
+        overlap_keywords=overlap_keywords,
+        analysis_metrics=analysis.get("metrics", {}),
+        section_presence=section_presence,
+    )
+    estimated_post_update_score = _estimate_post_update_score(
+        current_score=float(analysis.get("relevance_score", 0.0)),
+        action_plan=strategic_action_plan,
+        target_score=target_relevance_score,
+    )
+    gap_to_target = round(max(0.0, target_relevance_score - float(analysis.get("relevance_score", 0.0))), 2)
 
     final_name = (candidate_name or "").strip() or _candidate_name_from_resume(resume_text)
     target_role = role or "Target Role"
@@ -497,6 +742,7 @@ def build_revised_resume_package(
         "Expanded ATS-relevant skill vocabulary using JD-critical terms.",
         "Converted generic statements into impact-oriented bullets with evidence framing.",
         "Reordered emphasis toward decision-driving criteria: relevance, outcomes, and role-fit clarity.",
+        f"Built an execution roadmap to move relevance from {float(analysis.get('relevance_score', 0.0)):.2f}% toward {target_relevance_score:.2f}%+.",
     ]
     if ats_keywords_added:
         revision_rationale.append(
@@ -504,12 +750,22 @@ def build_revised_resume_package(
         )
 
     detailed_strategy = (
-        "Strategic Resume Upgrade Plan\n"
-        "1. Positioning: Start with a role-aligned summary that reflects the job's business outcomes.\n"
-        "2. Evidence: Prioritize measurable achievements over task descriptions.\n"
-        "3. ATS Fit: Integrate missing JD terms naturally across skills, experience, and projects.\n"
-        "4. Readability: Use concise bullets and maintain one result per line where possible.\n"
-        "5. Submission Readiness: Validate against JD checklist before each application."
+        "Strategic Resume Upgrade Plan (JD vs CV)\n"
+        f"Current relevance: {float(analysis.get('relevance_score', 0.0)):.2f}% | "
+        f"Target relevance: {target_relevance_score:.2f}%+ | "
+        f"Projected post-update relevance: {estimated_post_update_score:.2f}%\n\n"
+        "Phase 1: Critical alignment (highest lift)\n"
+        "- Rewrite summary for role-fit and business outcomes.\n"
+        "- Close top ATS keyword gaps in Skills + top Experience bullets.\n"
+        "- Convert top bullets to quantified outcomes with decision impact.\n\n"
+        "Phase 2: Proof depth and differentiation\n"
+        "- Map each JD requirement to one strong proof bullet.\n"
+        "- Add JD-aligned projects/case studies where direct experience is thin.\n"
+        "- Show ownership, stakeholder influence, and delivery accountability.\n\n"
+        "Phase 3: Submission quality control\n"
+        "- Run final JD checklist for exact terminology, readability, and consistency.\n"
+        "- Keep resume concise while preserving metrics and problem-solution-outcome clarity.\n"
+        "- Tailor every application version to the specific role and company context."
     )
 
     line_level_modifications = _line_level_modification_plan(
@@ -521,11 +777,16 @@ def build_revised_resume_package(
 
     return {
         "relevance_score": float(analysis["relevance_score"]),
+        "target_relevance_score": target_relevance_score,
+        "gap_to_target": gap_to_target,
+        "estimated_post_update_score": estimated_post_update_score,
         "baseline_summary": str(analysis.get("detailed_summary") or analysis.get("summary") or ""),
         "detailed_strategy": detailed_strategy,
         "revised_resume": revised_resume,
         "revision_rationale": revision_rationale,
         "ats_keywords_added": ats_keywords_added,
+        "strategic_action_plan": strategic_action_plan,
+        "jd_keyword_coverage": keyword_coverage_plan,
         "line_level_modifications": line_level_modifications,
         "analysis": analysis,
     }

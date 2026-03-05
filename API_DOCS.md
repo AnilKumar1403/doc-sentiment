@@ -155,11 +155,14 @@ Request:
 
 Response highlights:
 - `relevance_score`
+- `target_relevance_score`, `gap_to_target`, `estimated_post_update_score`
 - `baseline_summary`
 - `detailed_strategy`
 - `revised_resume`
 - `revision_rationale`
 - `ats_keywords_added`
+- `strategic_action_plan` (where to add, what to add, why it matters, expected impact, estimated score lift, sample line)
+- `jd_keyword_coverage` (keyword present in CV, recommended section, action, priority)
 - `line_level_modifications` (line number, current line, proposed line, reason, impact, priority)
 - `generated_cover_letter`
 - `credits_remaining`, `is_unlimited`

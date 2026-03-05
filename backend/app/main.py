@@ -622,6 +622,49 @@ def _generate_resume_core(
     revised_resume = str(package.get("revised_resume", ""))
     revision_rationale = _safe_str_list(package.get("revision_rationale"), [])
     ats_keywords_added = _safe_str_list(package.get("ats_keywords_added"), [])
+    target_relevance_score = float(package.get("target_relevance_score", 75.0) or 75.0)
+    gap_to_target = float(package.get("gap_to_target", 0.0) or 0.0)
+    estimated_post_update_score = float(
+        package.get("estimated_post_update_score", package.get("relevance_score", 0.0)) or 0.0
+    )
+
+    raw_actions = package.get("strategic_action_plan", [])
+    strategic_action_plan: list[dict] = []
+    if isinstance(raw_actions, list):
+        for item in raw_actions[:20]:
+            if not isinstance(item, dict):
+                continue
+            strategic_action_plan.append(
+                {
+                    "area": str(item.get("area", "")),
+                    "where_to_add": str(item.get("where_to_add", "")),
+                    "what_to_add": str(item.get("what_to_add", "")),
+                    "why_it_matters": str(item.get("why_it_matters", "")),
+                    "expected_impact": str(item.get("expected_impact", "")),
+                    "estimated_score_lift": float(item.get("estimated_score_lift", 0.0) or 0.0),
+                    "sample_line": (
+                        str(item.get("sample_line", "")) if item.get("sample_line") is not None else None
+                    ),
+                    "priority": str(item.get("priority", "medium")),
+                }
+            )
+
+    raw_keyword_coverage = package.get("jd_keyword_coverage", [])
+    jd_keyword_coverage: list[dict] = []
+    if isinstance(raw_keyword_coverage, list):
+        for item in raw_keyword_coverage[:30]:
+            if not isinstance(item, dict):
+                continue
+            jd_keyword_coverage.append(
+                {
+                    "keyword": str(item.get("keyword", "")),
+                    "present_in_cv": bool(item.get("present_in_cv", False)),
+                    "recommended_section": str(item.get("recommended_section", "")),
+                    "action": str(item.get("action", "")),
+                    "priority": str(item.get("priority", "medium")),
+                }
+            )
+
     raw_mods = package.get("line_level_modifications", [])
     line_level_modifications: list[dict] = []
     if isinstance(raw_mods, list):
@@ -643,10 +686,15 @@ def _generate_resume_core(
     if llm_available():
         refined = refine_resume_generation(
             base_resume_package={
+                "target_relevance_score": target_relevance_score,
+                "gap_to_target": gap_to_target,
+                "estimated_post_update_score": estimated_post_update_score,
                 "detailed_strategy": detailed_strategy,
                 "revised_resume": revised_resume,
                 "revision_rationale": revision_rationale,
                 "ats_keywords_added": ats_keywords_added,
+                "strategic_action_plan": strategic_action_plan,
+                "jd_keyword_coverage": jd_keyword_coverage,
             },
             role=payload.role,
             company=payload.company,
@@ -656,6 +704,51 @@ def _generate_resume_core(
             revised_resume = str(refined.get("revised_resume", revised_resume))
             revision_rationale = _safe_str_list(refined.get("revision_rationale"), revision_rationale)
             ats_keywords_added = _safe_str_list(refined.get("ats_keywords_added"), ats_keywords_added)
+            target_relevance_score = float(refined.get("target_relevance_score", target_relevance_score) or target_relevance_score)
+            gap_to_target = float(refined.get("gap_to_target", gap_to_target) or gap_to_target)
+            estimated_post_update_score = float(
+                refined.get("estimated_post_update_score", estimated_post_update_score) or estimated_post_update_score
+            )
+            refined_actions = refined.get("strategic_action_plan")
+            if isinstance(refined_actions, list):
+                normalized_actions: list[dict] = []
+                for item in refined_actions[:20]:
+                    if not isinstance(item, dict):
+                        continue
+                    normalized_actions.append(
+                        {
+                            "area": str(item.get("area", "")),
+                            "where_to_add": str(item.get("where_to_add", "")),
+                            "what_to_add": str(item.get("what_to_add", "")),
+                            "why_it_matters": str(item.get("why_it_matters", "")),
+                            "expected_impact": str(item.get("expected_impact", "")),
+                            "estimated_score_lift": float(item.get("estimated_score_lift", 0.0) or 0.0),
+                            "sample_line": (
+                                str(item.get("sample_line", "")) if item.get("sample_line") is not None else None
+                            ),
+                            "priority": str(item.get("priority", "medium")),
+                        }
+                    )
+                if normalized_actions:
+                    strategic_action_plan = normalized_actions
+
+            refined_keyword_coverage = refined.get("jd_keyword_coverage")
+            if isinstance(refined_keyword_coverage, list):
+                normalized_coverage: list[dict] = []
+                for item in refined_keyword_coverage[:30]:
+                    if not isinstance(item, dict):
+                        continue
+                    normalized_coverage.append(
+                        {
+                            "keyword": str(item.get("keyword", "")),
+                            "present_in_cv": bool(item.get("present_in_cv", False)),
+                            "recommended_section": str(item.get("recommended_section", "")),
+                            "action": str(item.get("action", "")),
+                            "priority": str(item.get("priority", "medium")),
+                        }
+                    )
+                if normalized_coverage:
+                    jd_keyword_coverage = normalized_coverage
             llm_enhanced = True
 
     generated_cover_letter = generate_cover_letter(
@@ -674,11 +767,16 @@ def _generate_resume_core(
         role=payload.role,
         company=payload.company,
         relevance_score=relevance_score,
+        target_relevance_score=target_relevance_score,
+        gap_to_target=gap_to_target,
+        estimated_post_update_score=estimated_post_update_score,
         baseline_summary=baseline_summary,
         detailed_strategy=detailed_strategy,
         revised_resume=revised_resume,
         revision_rationale=revision_rationale,
         ats_keywords_added=ats_keywords_added,
+        strategic_action_plan=strategic_action_plan,
+        jd_keyword_coverage=jd_keyword_coverage,
         line_level_modifications=line_level_modifications,
         generated_cover_letter=generated_cover_letter,
         credits_remaining=_credits_remaining_for_response(user),
@@ -698,8 +796,19 @@ def _generate_resume_core(
         summary=response.baseline_summary,
         suggestions=response.revision_rationale,
         details={
+            "target_relevance_score": response.target_relevance_score,
+            "gap_to_target": response.gap_to_target,
+            "estimated_post_update_score": response.estimated_post_update_score,
             "detailed_strategy": response.detailed_strategy,
             "ats_keywords_added": response.ats_keywords_added,
+            "strategic_action_plan": [
+                item.model_dump() if hasattr(item, "model_dump") else dict(item)
+                for item in response.strategic_action_plan
+            ],
+            "jd_keyword_coverage": [
+                item.model_dump() if hasattr(item, "model_dump") else dict(item)
+                for item in response.jd_keyword_coverage
+            ],
             "line_level_modifications": [
                 item.model_dump() if hasattr(item, "model_dump") else dict(item)
                 for item in response.line_level_modifications

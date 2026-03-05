@@ -175,7 +175,11 @@ def refine_resume_generation(*, base_resume_package: dict, role: str | None, com
     settings = get_settings()
     prompt = (
         "Refine this resume rewrite package. Return strict JSON with keys: "
-        "detailed_strategy, revised_resume, revision_rationale(list), ats_keywords_added(list). "
+        "detailed_strategy, revised_resume, revision_rationale(list), ats_keywords_added(list), "
+        "strategic_action_plan(list of objects with: area, where_to_add, what_to_add, why_it_matters, "
+        "expected_impact, estimated_score_lift, sample_line, priority), "
+        "jd_keyword_coverage(list of objects with: keyword, present_in_cv, recommended_section, action, priority), "
+        "target_relevance_score, gap_to_target, estimated_post_update_score. "
         "Output should be professional, crisp, and highly practical for real job applications. "
         f"Target role: {role or 'n/a'}. Company: {company or 'n/a'}. "
         f"Base package: {json.dumps(base_resume_package)}"

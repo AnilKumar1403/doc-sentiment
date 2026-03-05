@@ -194,16 +194,40 @@ function adaptRelevanceToResumeResult(data, context) {
     impact: 'Improves recruiter readability and semantic ATS match.',
     priority: idx < 2 ? 'high' : 'medium',
   }));
+  const fallbackActionPlan = (data.priority_actions || data.suggestions || []).slice(0, 8).map((item, idx) => ({
+    area: idx < 2 ? 'Critical Alignment' : 'Optimization',
+    where_to_add: idx < 3 ? 'Summary + Experience' : 'Experience + Projects',
+    what_to_add: item,
+    why_it_matters: 'Directly improves relevance against JD requirements.',
+    expected_impact: 'Improves ATS and recruiter confidence.',
+    estimated_score_lift: idx < 2 ? 4.0 : 2.0,
+    sample_line: null,
+    priority: idx < 3 ? 'high' : 'medium',
+  }));
+  const fallbackKeywordCoverage = (data.gaps || []).slice(0, 14).map((keyword, idx) => ({
+    keyword,
+    present_in_cv: false,
+    recommended_section: idx < 5 ? 'CORE SKILLS + EXPERIENCE' : 'EXPERIENCE BULLETS',
+    action: `Add '${keyword}' with a measurable proof point.`,
+    priority: idx < 6 ? 'high' : 'medium',
+  }));
+  const relevanceScore = Number(data.relevance_score || 0);
+  const targetScore = 75;
   return {
     title: context.title,
     role: context.role,
     company: context.company,
-    relevance_score: Number(data.relevance_score || 0),
+    relevance_score: relevanceScore,
+    target_relevance_score: targetScore,
+    gap_to_target: Math.max(0, targetScore - relevanceScore),
+    estimated_post_update_score: Math.max(targetScore, relevanceScore + 12),
     baseline_summary: data.summary || '',
     detailed_strategy: data.detailed_summary || '',
     revised_resume: resumeDraft,
     revision_rationale: (data.priority_actions || data.suggestions || []).slice(0, 12),
     ats_keywords_added: improvementKeywords,
+    strategic_action_plan: fallbackActionPlan,
+    jd_keyword_coverage: fallbackKeywordCoverage,
     line_level_modifications: fallbackMods,
     generated_cover_letter: data.generated_cover_letter || null,
     credits_remaining: currentUser?.is_unlimited ? null : Number(currentUser?.credits_remaining ?? 0),
@@ -343,6 +367,25 @@ async function loadHistory() {
         if ((item.label || '').toLowerCase() === 'resume_generation' || details.revised_resume) {
           const rationale = (item.suggestions || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
           const keywords = (details.ats_keywords_added || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+          const strategicPlan = (details.strategic_action_plan || []).map((a, idx) => `
+            <article class="resume-mod-item">
+              <p><strong>Action ${idx + 1} | Priority:</strong> ${escapeHtml((a.priority || 'medium').toUpperCase())}</p>
+              <p><strong>Area:</strong> ${escapeHtml(a.area || '')}</p>
+              <p><strong>Where:</strong> ${escapeHtml(a.where_to_add || '')}</p>
+              <p><strong>What to Add:</strong> ${escapeHtml(a.what_to_add || '')}</p>
+              <p><strong>Why:</strong> ${escapeHtml(a.why_it_matters || '')}</p>
+              <p><strong>Expected Impact:</strong> ${escapeHtml(a.expected_impact || '')}</p>
+              <p><strong>Estimated Score Lift:</strong> ${Number(a.estimated_score_lift || 0).toFixed(2)}%</p>
+              ${a.sample_line ? `<p><strong>Sample Line:</strong> ${escapeHtml(a.sample_line)}</p>` : ''}
+            </article>
+          `).join('');
+          const keywordCoverage = (details.jd_keyword_coverage || []).map((k) => `
+            <li>
+              <strong>${escapeHtml(k.keyword || '')}</strong> | Present: ${k.present_in_cv ? 'Yes' : 'No'} |
+              Section: ${escapeHtml(k.recommended_section || '')} | Priority: ${escapeHtml((k.priority || 'medium').toUpperCase())}
+              <br />Action: ${escapeHtml(k.action || '')}
+            </li>
+          `).join('');
           const mods = (details.line_level_modifications || []).map((m) => `
             <article class="resume-mod-item">
               <p><strong>Line ${Number(m.line_number || 0)} | Priority:</strong> ${escapeHtml((m.priority || 'medium').toUpperCase())}</p>
@@ -353,7 +396,11 @@ async function loadHistory() {
             </article>
           `).join('');
           detailBlock = `
+            <p><strong>Current Score:</strong> ${Number(item.score || 0).toFixed(2)}% | <strong>Target:</strong> ${Number(details.target_relevance_score || 75).toFixed(2)}% | <strong>Gap:</strong> ${Number(details.gap_to_target || 0).toFixed(2)}% | <strong>Projected:</strong> ${Number(details.estimated_post_update_score || item.score || 0).toFixed(2)}%</p>
             <pre>${escapeHtml(details.detailed_strategy || '')}</pre>
+            <p><strong>Strategic Action Plan:</strong></p>
+            ${strategicPlan || '<p class="muted">No strategic plan captured.</p>'}
+            <p><strong>JD Keyword Coverage:</strong></p><ul>${keywordCoverage || '<li>n/a</li>'}</ul>
             <p><strong>Line-by-Line Modification Plan:</strong></p>
             ${mods || '<p class="muted">No line-level modifications captured.</p>'}
             <p><strong>ATS Keywords Added:</strong></p><ul>${keywords || '<li>n/a</li>'}</ul>
@@ -453,6 +500,25 @@ function renderRelevanceResult(data) {
 function renderResumeGenerationResult(data) {
   const rationale = (data.revision_rationale || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
   const keywords = (data.ats_keywords_added || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('');
+  const strategicPlan = (data.strategic_action_plan || []).map((a, idx) => `
+    <article class="resume-mod-item">
+      <p><strong>Action ${idx + 1} | Priority:</strong> ${escapeHtml((a.priority || 'medium').toUpperCase())}</p>
+      <p><strong>Area:</strong> ${escapeHtml(a.area || '')}</p>
+      <p><strong>Where:</strong> ${escapeHtml(a.where_to_add || '')}</p>
+      <p><strong>What to Add:</strong> ${escapeHtml(a.what_to_add || '')}</p>
+      <p><strong>Why:</strong> ${escapeHtml(a.why_it_matters || '')}</p>
+      <p><strong>Expected Impact:</strong> ${escapeHtml(a.expected_impact || '')}</p>
+      <p><strong>Estimated Score Lift:</strong> ${Number(a.estimated_score_lift || 0).toFixed(2)}%</p>
+      ${a.sample_line ? `<p><strong>Sample Line:</strong> ${escapeHtml(a.sample_line)}</p>` : ''}
+    </article>
+  `).join('');
+  const keywordCoverage = (data.jd_keyword_coverage || []).map((k) => `
+    <li>
+      <strong>${escapeHtml(k.keyword || '')}</strong> | Present: ${k.present_in_cv ? 'Yes' : 'No'} |
+      Section: ${escapeHtml(k.recommended_section || '')} | Priority: ${escapeHtml((k.priority || 'medium').toUpperCase())}
+      <br />Action: ${escapeHtml(k.action || '')}
+    </li>
+  `).join('');
   const mods = (data.line_level_modifications || []).map((m) => `
     <article class="resume-mod-item">
       <p><strong>Line ${Number(m.line_number || 0)} | Priority:</strong> ${escapeHtml((m.priority || 'medium').toUpperCase())}</p>
@@ -467,10 +533,12 @@ function renderResumeGenerationResult(data) {
   const cover = data.generated_cover_letter ? `<pre>${escapeHtml(data.generated_cover_letter)}</pre>` : '';
   return `
     <div><strong>Role:</strong> ${escapeHtml(data.role || 'n/a')} | <strong>Company:</strong> ${escapeHtml(data.company || 'n/a')}</div>
-    <div><strong>Relevance Score:</strong> ${Number(data.relevance_score).toFixed(2)}%</div>
+    <div><strong>Relevance Score:</strong> ${Number(data.relevance_score).toFixed(2)}% | <strong>Target:</strong> ${Number(data.target_relevance_score || 75).toFixed(2)}%+ | <strong>Gap:</strong> ${Number(data.gap_to_target || 0).toFixed(2)}% | <strong>Projected Post-Update:</strong> ${Number(data.estimated_post_update_score || data.relevance_score).toFixed(2)}%</div>
     <div><strong>Plan:</strong> ${plan} | <strong>Credits Remaining:</strong> ${escapeHtml(credits)}</div>
     <pre>${escapeHtml(data.baseline_summary || '')}</pre>
     <pre>${escapeHtml(data.detailed_strategy || '')}</pre>
+    <div><strong>Strategic Action Plan (to exceed 75% relevance):</strong>${strategicPlan || '<p class="muted">No strategic actions generated.</p>'}</div>
+    <div><strong>JD Keyword Coverage Matrix:</strong><ul>${keywordCoverage || '<li>n/a</li>'}</ul></div>
     <div><strong>Line-by-Line Modification Plan:</strong>${mods || '<p class="muted">No line-level modifications generated.</p>'}</div>
     <div><strong>Revision Rationale:</strong><ul>${rationale || '<li>n/a</li>'}</ul></div>
     <div><strong>ATS Keywords Added:</strong><ul>${keywords || '<li>n/a</li>'}</ul></div>

@@ -106,16 +106,40 @@ class ResumeLineModification(BaseModel):
     priority: str
 
 
+class ResumeStrategicAction(BaseModel):
+    area: str
+    where_to_add: str
+    what_to_add: str
+    why_it_matters: str
+    expected_impact: str
+    estimated_score_lift: float = 0.0
+    sample_line: str | None = None
+    priority: str = "medium"
+
+
+class ResumeKeywordCoverage(BaseModel):
+    keyword: str
+    present_in_cv: bool
+    recommended_section: str
+    action: str
+    priority: str = "medium"
+
+
 class ResumeGenerationResponse(BaseModel):
     title: str
     role: str | None = None
     company: str | None = None
     relevance_score: float
+    target_relevance_score: float = 75.0
+    gap_to_target: float = 0.0
+    estimated_post_update_score: float = 0.0
     baseline_summary: str
     detailed_strategy: str
     revised_resume: str
     revision_rationale: list[str] = Field(default_factory=list)
     ats_keywords_added: list[str] = Field(default_factory=list)
+    strategic_action_plan: list[ResumeStrategicAction] = Field(default_factory=list)
+    jd_keyword_coverage: list[ResumeKeywordCoverage] = Field(default_factory=list)
     line_level_modifications: list[ResumeLineModification] = Field(default_factory=list)
     generated_cover_letter: str | None = None
     credits_remaining: int | None = None

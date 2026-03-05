@@ -161,6 +161,9 @@ Coverage:
     - `communication_tone`
     - stronger `generated_cover_letter` for `resume_jd`
   - resume generation returns:
+    - `target_relevance_score`, `gap_to_target`, `estimated_post_update_score`
+    - `strategic_action_plan` (where/what/why/impact/estimated score lift/sample line)
+    - `jd_keyword_coverage` (keyword present/missing + recommended section + action + priority)
     - `revised_resume`
     - `detailed_strategy`
     - `line_level_modifications` (line number + current text + proposed text + why + impact + priority)
