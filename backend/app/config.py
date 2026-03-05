@@ -23,6 +23,7 @@ def _load_cors_origins() -> list[str]:
         "http://127.0.0.1:5173",
         "http://localhost:5500",
         "http://127.0.0.1:5500",
+        "https://sentiment-dmx59w11d-anilkumargolla444-7543s-projects.vercel.app"
     ]
     for origin in local_defaults:
         if origin not in origins:
