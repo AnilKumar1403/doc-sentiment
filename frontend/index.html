@@ -17,12 +17,31 @@
           Intelligent document platform for sentiment, relevance, and learning analysis with OCR-assisted extraction.
         </p>
 
+        <div class="auth-mode-toggle">
+          <button id="auth-mode-login" class="ghost-btn active" type="button">Login</button>
+          <button id="auth-mode-register" class="ghost-btn" type="button">Create Account</button>
+        </div>
+
         <form id="login-form" class="form-block">
           <label for="login-email">Email</label>
           <input id="login-email" type="email" required  />
           <label for="login-password">Password</label>
           <input id="login-password" type="password" required  />
           <button type="submit">Login</button>
+          <button id="go-register-btn" class="ghost-btn" type="button">Need an account? Create one</button>
+        </form>
+
+        <form id="register-form" class="form-block hidden">
+          <label for="register-name">Display Name</label>
+          <input id="register-name" type="text" minlength="2" maxlength="120" required />
+          <label for="register-email">Email</label>
+          <input id="register-email" type="email" required />
+          <label for="register-password">Password</label>
+          <input id="register-password" type="password" minlength="8" required />
+          <label for="register-password-confirm">Confirm Password</label>
+          <input id="register-password-confirm" type="password" minlength="8" required />
+          <button type="submit">Create Account</button>
+          <button id="go-login-btn" class="ghost-btn" type="button">Already have an account? Login</button>
         </form>
 
         <div id="auth-message" class="message hidden"></div>

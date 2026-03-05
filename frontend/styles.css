@@ -76,6 +76,13 @@ body {
   padding: 1.4rem;
 }
 
+.auth-mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  margin: 0.8rem 0 0.5rem;
+}
+
 .auth-footer {
   margin-top: 1rem;
   margin-bottom: 0;
@@ -142,9 +149,26 @@ button,
   color: #fff;
 }
 
+.ghost-btn {
+  background: linear-gradient(90deg, #eff7ff 0%, #f2edff 100%);
+  color: #4d6590;
+  border: 1px solid var(--line);
+}
+
+.ghost-btn.active {
+  background: var(--brand);
+  color: #fff;
+  border-color: transparent;
+}
+
 button:hover,
 .menu-btn:hover {
   background: var(--brand-strong);
+}
+
+.ghost-btn:hover {
+  background: #e9f2ff;
+  color: #3f5d8a;
 }
 
 .hidden {

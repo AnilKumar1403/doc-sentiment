@@ -2,6 +2,11 @@ const authScreen = document.getElementById('auth-screen');
 const appShell = document.getElementById('app-shell');
 const authMessage = document.getElementById('auth-message');
 const loginForm = document.getElementById('login-form');
+const registerForm = document.getElementById('register-form');
+const authModeLoginBtn = document.getElementById('auth-mode-login');
+const authModeRegisterBtn = document.getElementById('auth-mode-register');
+const goRegisterBtn = document.getElementById('go-register-btn');
+const goLoginBtn = document.getElementById('go-login-btn');
 const sidebarUser = document.getElementById('sidebar-user');
 const viewTitle = document.getElementById('view-title');
 const viewSubtitle = document.getElementById('view-subtitle');
@@ -75,21 +80,13 @@ async function apiFetch(url, options = {}) {
   let res = await tryFetch(url);
   if ((!res || res.status === 404) && typeof url === 'string' && url.startsWith('/api/')) {
     const fallbackBases = [
+      // Production backend (Render)
+      'https://sentiment-backend-latest-r5du.onrender.com',
+    
+      // Local dev (optional - keep these if you run backend locally sometimes)
       'http://127.0.0.1:8000',
       'http://localhost:8000',
-      'http://127.0.0.1:8001',
-      'http://localhost:8001',
-      'http://127.0.0.1:8080',
-      'http://localhost:8080',
-      'http://127.0.0.1:5000',
-      'http://localhost:5000',
-      'http://127.0.0.1:9000',
-      'http://localhost:9000',
-      'http://127.0.0.1:7000',
-      'http://localhost:7000',
-    ].filter(
-      (base) => base !== window.location.origin,
-    );
+    ].filter((base) => base !== window.location.origin);
     for (const base of fallbackBases) {
       const candidate = `${base}${url}`;
       const fallbackRes = await tryFetch(candidate);
@@ -247,6 +244,15 @@ function renderUserIdentity(user) {
   document.getElementById('profile-joined').textContent = new Date(user.created_at).toLocaleString();
 }
 
+function setAuthMode(mode) {
+  const isRegister = mode === 'register';
+  loginForm.classList.toggle('hidden', isRegister);
+  registerForm.classList.toggle('hidden', !isRegister);
+  authModeLoginBtn.classList.toggle('active', !isRegister);
+  authModeRegisterBtn.classList.toggle('active', isRegister);
+  authMessage.classList.add('hidden');
+}
+
 async function refreshCurrentUser() {
   if (!currentUser) return;
   try {
@@ -269,8 +275,7 @@ function showAuth() {
   currentUser = null;
   appShell.classList.add('hidden');
   authScreen.classList.remove('hidden');
-  loginForm.classList.remove('hidden');
-  authMessage.classList.add('hidden');
+  setAuthMode('login');
   if (window.location.pathname !== '/login') window.history.replaceState({}, '', '/login');
 }
 
@@ -623,6 +628,47 @@ loginForm.addEventListener('submit', async (event) => {
     showMessage(authMessage, escapeHtml(err.message), true);
   }
 });
+
+registerForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const displayName = document.getElementById('register-name').value.trim();
+  const email = document.getElementById('register-email').value.trim();
+  const password = document.getElementById('register-password').value;
+  const passwordConfirm = document.getElementById('register-password-confirm').value;
+
+  if (password !== passwordConfirm) {
+    showMessage(authMessage, 'Passwords do not match.', true);
+    return;
+  }
+
+  try {
+    const data = await postJsonWithRouteFallback(
+      [
+        '/api/v1/auth/register',
+        '/api/v1/auth/register/',
+        '/api/auth/register',
+        '/auth/register',
+      ],
+      { display_name: displayName, email, password },
+    );
+    localStorage.setItem(ACCESS_TOKEN_KEY, data.access_token);
+    showApp(data.user);
+  } catch (err) {
+    const msg = String(err?.message || '');
+    if (msg.toLowerCase().includes('already exists')) {
+      showMessage(authMessage, 'Account already exists. Please login with your email and password.', true);
+      setAuthMode('login');
+      document.getElementById('login-email').value = email;
+      return;
+    }
+    showMessage(authMessage, escapeHtml(msg), true);
+  }
+});
+
+authModeLoginBtn.addEventListener('click', () => setAuthMode('login'));
+authModeRegisterBtn.addEventListener('click', () => setAuthMode('register'));
+goRegisterBtn.addEventListener('click', () => setAuthMode('register'));
+goLoginBtn.addEventListener('click', () => setAuthMode('login'));
 
 document.getElementById('relevance-form').addEventListener('submit', async (event) => {
   event.preventDefault();
