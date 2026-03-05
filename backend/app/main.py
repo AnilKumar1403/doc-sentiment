@@ -7,7 +7,6 @@ from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
-from fastapi.middleware.cors import CORSMiddleware
 
 from .bootstrap import initialize_database, seed_default_user
 from .config import get_settings
@@ -54,27 +53,6 @@ from .sentiment import router as sentiment_router
 
 settings = get_settings()
 app = FastAPI(title=settings.api_title)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "https://sentiment-blush.vercel.app",
-        "http://localhost:5500",
-        "http://127.0.0.1:5500"
-        "https://sentiment-dmx59w11d-anilkumargolla444-7543s-projects.vercel.app",
-        "https://sentiment-dmx59w11d-anilkumargolla444-7543s-projects.vercel.app/",
-        # later add your Vercel domain: "https://<your-project>.vercel.app"
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-@app.get("/")
-def root():
-    return {"status": "ok"}
-
-@app.get("/health")
-def health():
-    return {"status": "healthy"}
 model = SentimentModel()
 app.include_router(sentiment_router)
 
@@ -145,6 +123,34 @@ def history_page() -> FileResponse:
 @app.get("/profile", include_in_schema=False)
 def profile_page() -> FileResponse:
     return _index_page()
+
+
+def _frontend_asset(filename: str) -> FileResponse:
+    file_path = frontend_dir / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"Frontend asset not found: {filename}")
+    return FileResponse(str(file_path))
+
+
+@app.get("/app.js", include_in_schema=False)
+def app_js_alias() -> FileResponse:
+    return _frontend_asset("app.js")
+
+
+@app.get("/main.js", include_in_schema=False)
+def main_js_alias() -> FileResponse:
+    return _frontend_asset("app.js")
+
+
+@app.get("/styles.css", include_in_schema=False)
+def styles_css_alias() -> FileResponse:
+    return _frontend_asset("styles.css")
+
+
+@app.get("/src/main.jsx", include_in_schema=False)
+def src_main_jsx_alias() -> FileResponse:
+    # Compatibility route for stale cached frontend entry paths.
+    return _frontend_asset("app.js")
 
 
 @app.get("/health", response_model=HealthResponse)
