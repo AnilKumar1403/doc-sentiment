@@ -15,6 +15,34 @@
     {
       "source": "/health",
       "destination": "https://sentiment-backend-latest-r5du.onrender.com/health"
+    },
+    {
+      "source": "/login",
+      "destination": "/"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/"
+    },
+    {
+      "source": "/sentiment",
+      "destination": "/"
+    },
+    {
+      "source": "/relevance",
+      "destination": "/"
+    },
+    {
+      "source": "/learning",
+      "destination": "/"
+    },
+    {
+      "source": "/history",
+      "destination": "/"
+    },
+    {
+      "source": "/profile",
+      "destination": "/"
     }
   ]
 }

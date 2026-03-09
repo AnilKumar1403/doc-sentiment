@@ -665,12 +665,14 @@ function renderSentimentResult(data) {
 loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   try {
+    const email = document.getElementById('login-email').value.trim().toLowerCase();
+    const password = document.getElementById('login-password').value.trim();
     const data = await apiFetch('/api/v1/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email: document.getElementById('login-email').value.trim(),
-        password: document.getElementById('login-password').value,
+        email,
+        password,
       }),
     });
     localStorage.setItem(ACCESS_TOKEN_KEY, data.access_token);
@@ -683,9 +685,9 @@ loginForm.addEventListener('submit', async (event) => {
 registerForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const displayName = document.getElementById('register-name').value.trim();
-  const email = document.getElementById('register-email').value.trim();
-  const password = document.getElementById('register-password').value;
-  const passwordConfirm = document.getElementById('register-password-confirm').value;
+  const email = document.getElementById('register-email').value.trim().toLowerCase();
+  const password = document.getElementById('register-password').value.trim();
+  const passwordConfirm = document.getElementById('register-password-confirm').value.trim();
 
   if (password !== passwordConfirm) {
     showMessage(authMessage, 'Passwords do not match.', true);
