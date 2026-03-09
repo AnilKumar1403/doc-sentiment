@@ -13,6 +13,28 @@ const viewSubtitle = document.getElementById('view-subtitle');
 
 let currentUser = null;
 const ACCESS_TOKEN_KEY = 'sentiment_access_token';
+const API_BASE_STORAGE_KEY = 'aqualearning_api_base';
+
+function normalizedApiBase(raw) {
+  const value = String(raw || '').trim();
+  if (!value) return '';
+  return value.endsWith('/') ? value.slice(0, -1) : value;
+}
+
+function configuredApiBase() {
+  const fromStorage = normalizedApiBase(window.localStorage.getItem(API_BASE_STORAGE_KEY));
+  if (fromStorage) return fromStorage;
+
+  const fromGlobal = normalizedApiBase(window.AQUALearning_API_BASE || window.AQUALEARNING_API_BASE);
+  if (fromGlobal) return fromGlobal;
+
+  const fromQuery = normalizedApiBase(new URLSearchParams(window.location.search).get('api_base'));
+  if (fromQuery) {
+    window.localStorage.setItem(API_BASE_STORAGE_KEY, fromQuery);
+    return fromQuery;
+  }
+  return '';
+}
 
 const viewMeta = {
   dashboard: { title: 'Dashboard', subtitle: 'Analytics-only view for your account activity and model insights.' },
@@ -77,16 +99,37 @@ async function apiFetch(url, options = {}) {
     }
   };
 
-  let res = await tryFetch(url);
-  if ((!res || res.status === 404) && typeof url === 'string' && url.startsWith('/api/')) {
-    const fallbackBases = [
+  const isApiPath = typeof url === 'string' && url.startsWith('/api/');
+  const overrideBase = configuredApiBase();
+  let res = null;
+
+  if (isApiPath && overrideBase) {
+    res = await tryFetch(`${overrideBase}${url}`);
+  }
+
+  if (!res) {
+    res = await tryFetch(url);
+  }
+
+  if ((!res || res.status === 404) && isApiPath) {
+    const isHttpsPage = window.location.protocol === 'https:';
+    let fallbackBases = [
       // Production backend (Render)
       'https://sentiment-backend-latest-r5du.onrender.com',
     
       // Local dev (optional - keep these if you run backend locally sometimes)
       'http://127.0.0.1:8000',
       'http://localhost:8000',
-    ].filter((base) => base !== window.location.origin);
+    ];
+    if (overrideBase) {
+      fallbackBases.unshift(overrideBase);
+    }
+    if (isHttpsPage) {
+      fallbackBases = fallbackBases.filter((base) => base.startsWith('https://'));
+    }
+    fallbackBases = fallbackBases.filter(
+      (base, idx) => base !== window.location.origin && fallbackBases.indexOf(base) === idx,
+    );
     for (const base of fallbackBases) {
       const candidate = `${base}${url}`;
       const fallbackRes = await tryFetch(candidate);
@@ -102,6 +145,11 @@ async function apiFetch(url, options = {}) {
   }
 
   if (!res) {
+    if (window.location.protocol === 'https:') {
+      throw new Error(
+        'Backend not reachable from this HTTPS page. Set ?api_base=https://<backend-host> or localStorage aqualearning_api_base.',
+      );
+    }
     throw new Error('Backend not reachable. Ensure backend is running and API base/port is correct.');
   }
   if (!res.ok) {
