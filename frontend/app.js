@@ -110,13 +110,16 @@ async function apiFetch(url, options = {}) {
   }
 
   if (!res) {
-    const firstUrl = isApiPath && !overrideBase && shouldUseVercelApiProxy()
-      ? toVercelProxyUrl(url)
-      : url;
-    res = await tryFetch(firstUrl);
+    res = await tryFetch(url);
   }
 
   if ((!res || res.status === 404) && isApiPath) {
+    if (shouldUseVercelApiProxy()) {
+      const proxyRes = await tryFetch(toVercelProxyUrl(url));
+      if (proxyRes && proxyRes.status !== 404) {
+        res = proxyRes;
+      }
+    }
     const isHttpsPage = window.location.protocol === 'https:';
     let fallbackBases = [
       'http://127.0.0.1:8000',
