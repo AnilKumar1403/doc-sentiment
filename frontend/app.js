@@ -13,7 +13,6 @@ const viewSubtitle = document.getElementById('view-subtitle');
 
 let currentUser = null;
 const ACCESS_TOKEN_KEY = 'sentiment_access_token';
-const API_BASE_STORAGE_KEY = 'aqualearning_api_base';
 
 function normalizedApiBase(raw) {
   const value = String(raw || '').trim();
@@ -22,18 +21,21 @@ function normalizedApiBase(raw) {
 }
 
 function configuredApiBase() {
-  const fromStorage = normalizedApiBase(window.localStorage.getItem(API_BASE_STORAGE_KEY));
-  if (fromStorage) return fromStorage;
-
   const fromGlobal = normalizedApiBase(window.AQUALearning_API_BASE || window.AQUALEARNING_API_BASE);
   if (fromGlobal) return fromGlobal;
 
   const fromQuery = normalizedApiBase(new URLSearchParams(window.location.search).get('api_base'));
-  if (fromQuery) {
-    window.localStorage.setItem(API_BASE_STORAGE_KEY, fromQuery);
-    return fromQuery;
-  }
+  if (fromQuery) return fromQuery;
   return '';
+}
+
+function shouldUseVercelApiProxy() {
+  return window.location.hostname.endsWith('vercel.app');
+}
+
+function toVercelProxyUrl(apiPath) {
+  if (typeof apiPath !== 'string' || !apiPath.startsWith('/api/')) return apiPath;
+  return `/api/proxy?path=${encodeURIComponent(apiPath.slice('/api/'.length))}`;
 }
 
 const viewMeta = {
@@ -108,7 +110,10 @@ async function apiFetch(url, options = {}) {
   }
 
   if (!res) {
-    res = await tryFetch(url);
+    const firstUrl = isApiPath && !overrideBase && shouldUseVercelApiProxy()
+      ? toVercelProxyUrl(url)
+      : url;
+    res = await tryFetch(firstUrl);
   }
 
   if ((!res || res.status === 404) && isApiPath) {
@@ -145,7 +150,7 @@ async function apiFetch(url, options = {}) {
   if (!res) {
     if (window.location.protocol === 'https:') {
       throw new Error(
-        'Backend not reachable from this HTTPS page. Set ?api_base=https://<backend-host> or localStorage aqualearning_api_base.',
+        'Backend not reachable from this HTTPS page. Set ?api_base=https://<backend-host>.',
       );
     }
     throw new Error('Backend not reachable. Ensure backend is running and API base/port is correct.');

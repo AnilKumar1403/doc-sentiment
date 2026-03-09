@@ -1,0 +1,20 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://sentiment-backend-latest-r5du.onrender.com/api/:path*"
+    },
+    {
+      "source": "/docs",
+      "destination": "https://sentiment-backend-latest-r5du.onrender.com/docs"
+    },
+    {
+      "source": "/openapi.json",
+      "destination": "https://sentiment-backend-latest-r5du.onrender.com/openapi.json"
+    },
+    {
+      "source": "/health",
+      "destination": "https://sentiment-backend-latest-r5du.onrender.com/health"
+    }
+  ]
+}
