@@ -114,12 +114,10 @@ async function apiFetch(url, options = {}) {
   if ((!res || res.status === 404) && isApiPath) {
     const isHttpsPage = window.location.protocol === 'https:';
     let fallbackBases = [
-      // Production backend (Render)
-      'https://sentiment-backend-latest-r5du.onrender.com',
-    
-      // Local dev (optional - keep these if you run backend locally sometimes)
       'http://127.0.0.1:8000',
       'http://localhost:8000',
+      'http://127.0.0.1:8001',
+      'http://localhost:8001',
     ];
     if (overrideBase) {
       fallbackBases.unshift(overrideBase);
